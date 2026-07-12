@@ -59,8 +59,18 @@ export function AuthProvider({ children }) {
         setUser(null);
     }
 
+    function updateProfile(updatedUser, updatedToken) {
+        if (updatedToken) {
+            localStorage.setItem(TOKEN_KEY, updatedToken);
+            setToken(updatedToken);
+        }
+        if (updatedUser) {
+            setUser(updatedUser);
+        }
+    }
+
     return (
-        <AuthContext.Provider value={{ user, token, checking, login, logout }}>
+        <AuthContext.Provider value={{ user, token, checking, login, logout, updateProfile }}>
             {children}
         </AuthContext.Provider>
     );

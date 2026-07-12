@@ -1,20 +1,16 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Package, Truck, CheckCircle2, Clock, Search, Filter, Plus } from "lucide-react";
+import { Package, Truck, CheckCircle2, Clock, Search, Filter, Plus, X, AlertCircle } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import Pagination from "../components/pagination";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 const PAGE_SIZE = 6;
 
-export default function Orders({ purchaseOrders }) {
+export default function Orders({ purchaseOrders, refreshData, selectedStationId }) {
+    const { token } = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [page, setPage] = useState(1);
-
-    // Use the props from App.jsx, but provide rich dummy data if the API is empty during development
-    const orders = purchaseOrders?.length > 0 ? purchaseOrders : [
-        { id: "PO-1042", vendor: "Pilipinas Shell Petroleum", type: "Bulk Fuel", amount: "₱ 450,000", status: "In Transit", eta: "Today, 2:00 PM", items: "18,000L Diesel" },
-        { id: "PO-1043", vendor: "Petron Corporation", type: "Bulk Fuel", amount: "₱ 120,000", status: "Pending", eta: "Tomorrow", items: "4,000L Unleaded 95" },
-        { id: "PO-1044", vendor: "Motul Distributors", type: "Lubricants", amount: "₱ 15,500", status: "Delivered", eta: "Yesterday", items: "48x Synthetic Motor Oil 1L" },
-        { id: "PO-1045", vendor: "Solane LPG", type: "Cylinders", amount: "₱ 22,000", status: "Delayed", eta: "Pending Update", items: "20x 11kg Cylinders" },
-    ];
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const statusStyles = {
         "Pending": "bg-yellow-50 text-yellow-700 border-yellow-200",
@@ -31,8 +27,10 @@ export default function Orders({ purchaseOrders }) {
     };
 
     const filtered = useMemo(
-        () => orders.filter((o) => `${o.id} ${o.vendor}`.toLowerCase().includes(searchQuery.toLowerCase())),
-        [orders, searchQuery]
+        () => (purchaseOrders || []).filter((o) =>
+            `${o.id} ${o.vendor} ${o.items || ""} ${o.type || ""}`.toLowerCase().includes(searchQuery.toLowerCase())
+        ),
+        [purchaseOrders, searchQuery]
     );
 
     // Reset to page 1 whenever the search narrows/widens the result set
@@ -55,7 +53,10 @@ export default function Orders({ purchaseOrders }) {
                     <h1 className="font-bold text-xl sm:text-2xl tracking-wide text-blue-950">PURCHASE ORDERS</h1>
                     <div className="text-xs text-slate-500 font-medium mt-1">Manage station supplies and fuel deliveries</div>
                 </div>
-                <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg shadow-sm text-sm font-bold hover:bg-blue-700 transition-colors shrink-0">
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg shadow-sm text-sm font-bold hover:bg-blue-700 transition-colors shrink-0"
+                >
                     <Plus size={16} />
                     Create New PO
                 </button>
@@ -69,7 +70,7 @@ export default function Orders({ purchaseOrders }) {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search PO number or vendor..."
+                        placeholder="Search PO number, vendor, type or items..."
                         className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white transition-all"
                     />
                 </div>
@@ -103,19 +104,19 @@ export default function Orders({ purchaseOrders }) {
                                 </td>
                                 <td className="py-4 px-5 border-b border-slate-100">
                                     <div className="font-semibold text-slate-800 text-sm">{order.vendor}</div>
-                                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">{order.type}</div>
+                                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">{order.type || "Supply Delivery"}</div>
                                 </td>
                                 <td className="py-4 px-5 border-b border-slate-100">
-                                    <div className="text-sm text-slate-600 font-medium">{order.items}</div>
+                                    <div className="text-sm text-slate-600 font-medium">{order.items || "Products / Fuel"}</div>
                                 </td>
                                 <td className="py-4 px-5 border-b border-slate-100">
                                     <div className="font-bold text-emerald-700 text-sm">{order.amount}</div>
                                 </td>
                                 <td className="py-4 px-5 border-b border-slate-100">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md border ${statusStyles[order.status]}`}>
-                      {statusIcons[order.status]}
-                        {order.status}
-                    </span>
+                                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md border ${statusStyles[order.status] || "bg-slate-50 border-slate-200 text-slate-600"}`}>
+                                        {statusIcons[order.status] || <Clock size={14} />}
+                                        {order.status}
+                                    </span>
                                 </td>
                                 <td className="py-4 px-5 border-b border-slate-100 text-slate-500 text-sm font-medium">
                                     {order.eta}
@@ -125,7 +126,7 @@ export default function Orders({ purchaseOrders }) {
                         {filtered.length === 0 && (
                             <tr>
                                 <td colSpan={6} className="py-10 text-center text-slate-400 text-sm">
-                                    No purchase orders match "{searchQuery}".
+                                    No purchase orders match your search.
                                 </td>
                             </tr>
                         )}
@@ -152,15 +153,15 @@ export default function Orders({ purchaseOrders }) {
                                     <Package size={16} className="text-slate-400 shrink-0" />
                                     <span className="font-bold text-slate-800 text-sm truncate">{order.id}</span>
                                 </div>
-                                <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-md border shrink-0 ${statusStyles[order.status]}`}>
-                                    {statusIcons[order.status]}
+                                <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-md border shrink-0 ${statusStyles[order.status] || "bg-slate-50 border-slate-200 text-slate-600"}`}>
+                                    {statusIcons[order.status] || <Clock size={14} />}
                                     {order.status}
                                 </span>
                             </div>
 
                             <div className="font-semibold text-slate-800 text-sm">{order.vendor}</div>
-                            <div className="text-[11px] text-slate-400 font-medium mb-2">{order.type}</div>
-                            <div className="text-sm text-slate-600 font-medium mb-3">{order.items}</div>
+                            <div className="text-[11px] text-slate-400 font-medium mb-2">{order.type || "Supply Delivery"}</div>
+                            <div className="text-sm text-slate-600 font-medium mb-3">{order.items || "Products / Fuel"}</div>
 
                             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                                 <div>
@@ -176,7 +177,7 @@ export default function Orders({ purchaseOrders }) {
                     ))}
                     {filtered.length === 0 && (
                         <div className="py-10 text-center text-slate-400 text-sm px-4">
-                            No purchase orders match "{searchQuery}".
+                            No purchase orders match your search.
                         </div>
                     )}
                 </div>
@@ -189,6 +190,165 @@ export default function Orders({ purchaseOrders }) {
                     />
                 </div>
             </div>
+
+            {/* CREATE PO MODAL */}
+            {isModalOpen && (
+                <CreatePoModal
+                    token={token}
+                    selectedStationId={selectedStationId}
+                    onClose={() => setIsModalOpen(false)}
+                    onSaved={() => {
+                        setIsModalOpen(false);
+                        refreshData();
+                    }}
+                />
+            )}
+        </div>
+    );
+}
+
+function CreatePoModal({ token, selectedStationId, onClose, onSaved }) {
+    const [vendor, setVendor] = useState("");
+    const [type, setType] = useState("Bulk Fuel");
+    const [items, setItems] = useState("");
+    const [amount, setAmount] = useState("");
+    const [etaDate, setEtaDate] = useState("");
+    
+    const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        setError("");
+        setSaving(true);
+
+        const amountNum = parseFloat(amount);
+        if (isNaN(amountNum) || amountNum <= 0) {
+            setError("Please enter a valid amount");
+            setSaving(false);
+            return;
+        }
+
+        const po_number = `PO-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        try {
+            const res = await fetch(`${API_URL}/purchase-orders`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    po_number,
+                    vendor,
+                    status: "Pending",
+                    amount: amountNum,
+                    eta_date: etaDate,
+                    type,
+                    items,
+                    station_id: selectedStationId || 1
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to create Purchase Order");
+
+            onSaved();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-bold text-lg text-slate-800">Create New Purchase Order</h2>
+                    <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-3 py-2 mb-4 flex items-center gap-1.5">
+                        <AlertCircle size={14} /> {error}
+                    </div>
+                )}
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Vendor Name</label>
+                        <input
+                            value={vendor}
+                            onChange={(e) => setVendor(e.target.value)}
+                            required
+                            placeholder="e.g. Petron Corporation"
+                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white transition-all"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Order Type</label>
+                            <select
+                                value={type}
+                                onChange={(e) => setType(e.target.value)}
+                                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white"
+                            >
+                                <option value="Bulk Fuel">Bulk Fuel</option>
+                                <option value="Lubricants">Lubricants</option>
+                                <option value="Cylinders">Cylinders</option>
+                                <option value="Safety">Safety</option>
+                                <option value="Convenience">Convenience</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Total Amount (₱)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                required
+                                placeholder="0.00"
+                                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Items Summary</label>
+                        <input
+                            value={items}
+                            onChange={(e) => setItems(e.target.value)}
+                            required
+                            placeholder="e.g. 5,000L Unleaded 95, 24x Brake Fluid"
+                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white transition-all"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Estimated Delivery Date (ETA)</label>
+                        <input
+                            type="date"
+                            value={etaDate}
+                            onChange={(e) => setEtaDate(e.target.value)}
+                            required
+                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white"
+                        />
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full mt-6 bg-blue-950 hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg disabled:opacity-60 transition-colors"
+                >
+                    {saving ? "Creating PO..." : "Generate Purchase Order"}
+                </button>
+            </form>
         </div>
     );
 }

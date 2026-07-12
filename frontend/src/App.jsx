@@ -41,6 +41,32 @@ export default function App() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const DEFAULT_TRANSACTIONS = useMemo(() => [
+    { id: "TXN-8921", time: "10:24 AM", type: "Unleaded 95", amount: 1500.00, liters: 23.01, date: new Date().toISOString().slice(0,10), category: "sales" },
+    { id: "TXN-8920", time: "10:18 AM", type: "Diesel", amount: 2100.00, liters: 36.20, date: new Date().toISOString().slice(0,10), category: "sales" },
+    { id: "TXN-8919", time: "10:05 AM", type: "Unleaded 91", amount: 500.00, liters: 8.26, date: new Date().toISOString().slice(0,10), category: "sales" },
+    { id: "TXN-8918", time: "09:42 AM", type: "LPG Bulk", amount: 950.00, liters: 21.11, date: new Date().toISOString().slice(0,10), category: "sales" },
+    { id: "DEL-1001", time: "09:00 AM", type: "Diesel", amount: 98000.00, liters: 1690.00, date: new Date().toISOString().slice(0,10), category: "delivery" }
+  ], []);
+
+  const [transactions, setTransactions] = useState(() => {
+    const saved = localStorage.getItem("asf_transactions");
+    return saved ? JSON.parse(saved) : DEFAULT_TRANSACTIONS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("asf_transactions", JSON.stringify(transactions));
+  }, [transactions]);
+
+  const addTransaction = (newTxn) => {
+    setTransactions((prev) => [newTxn, ...prev]);
+  };
+
+  const refreshData = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   // Filter States for Inventory
   const [activeCat, setActiveCat] = useState("all");
@@ -51,11 +77,20 @@ export default function App() {
 
   // Load the list of stations once logged in (used to populate the filter;
   // for a manager this just comes back as their one station, harmless).
+  // Managers are automatically locked to their own station.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     getJSON("/stations", token)
-        .then((data) => { if (!cancelled) setStations(data); })
+        .then((data) => {
+          if (cancelled) return;
+          setStations(data);
+          // If the logged-in user is a manager, pin the station filter to
+          // their station automatically so every page loads the right data.
+          if (user.role === "manager" && user.station_id) {
+            setSelectedStationId(user.station_id);
+          }
+        })
         .catch(() => {});
     return () => { cancelled = true; };
   }, [user, token]);
@@ -81,10 +116,10 @@ export default function App() {
 
         // Fallback dummy data if API fails so the UI still renders
         setTanks(tanksData.length ? tanksData : [
-          {id: 1, name: "Unleaded 91", pct: 68, vol: "12,240", cap: "18,000 L", status: "healthy"},
-          {id: 2, name: "Unleaded 95", pct: 22, vol: "3,960", cap: "18,000 L", status: "low"},
-          {id: 3, name: "Diesel", pct: 81, vol: "16,200", cap: "20,000 L", status: "healthy"},
-          {id: 4, name: "LPG Bulk", pct: 9, vol: "900", cap: "10,000 L", status: "critical"}
+          {id: 1, name: "Unleaded 91", pct: 68, vol: "12,240 L", cap: "18,000 L", status: "healthy", price_per_liter: 60.50, volume_liters: 12240, capacity_liters: 18000},
+          {id: 2, name: "Unleaded 95", pct: 22, vol: "3,960 L", cap: "18,000 L", status: "low", price_per_liter: 65.20, volume_liters: 3960, capacity_liters: 18000},
+          {id: 3, name: "Diesel", pct: 81, vol: "16,200 L", cap: "20,000 L", status: "healthy", price_per_liter: 58.00, volume_liters: 16200, capacity_liters: 20000},
+          {id: 4, name: "LPG Bulk", pct: 9, vol: "900 L", cap: "10,000 L", status: "critical", price_per_liter: 45.00, volume_liters: 900, capacity_liters: 10000}
         ]);
         setCategoryBars(barsData.length ? barsData : []);
         setPurchaseOrders(poData.length ? poData : []);
@@ -101,7 +136,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [user, token, selectedStationId]);
+  }, [user, token, selectedStationId, refreshKey]);
 
   const criticalCount = useMemo(
       () => products.filter((p) => p.status === "Critical").length,
@@ -184,7 +219,7 @@ export default function App() {
             )}
 
             {/* VIEW ROUTING */}
-            {safeActiveTab === "Dashboard" && <Dashboard tanks={tanks}/>}
+            {safeActiveTab === "Dashboard" && <Dashboard tanks={tanks} transactions={transactions} setActiveTab={setActiveTab} />}
             {safeActiveTab === "Inventory" && (
                 <Inventory
                     tanks={tanks}
@@ -201,14 +236,25 @@ export default function App() {
                     setActiveCat={setActiveCat}
                     activeStatus={activeStatus}
                     setActiveStatus={setActiveStatus}
+                    refreshData={refreshData}
+                    selectedStationId={selectedStationId}
                 />
             )}
-            {safeActiveTab === "Operations" && <Operations dummyTanks={tanks}/>}
-            {safeActiveTab === "Analytics" && <Analytics/>}
-            {safeActiveTab === "Orders" && <Orders purchaseOrders={purchaseOrders}/>}
-            {safeActiveTab === "Profile" && <Profile/>}
-            {safeActiveTab === "Settings" && <Settings/>}
-            {safeActiveTab === "Stations" && canSeeStations && <Stations/>}
+            {safeActiveTab === "Operations" && (
+                <Operations
+                    dummyTanks={tanks}
+                    transactions={transactions}
+                    addTransaction={addTransaction}
+                    refreshData={refreshData}
+                    selectedStationId={selectedStationId}
+                    stations={stations}
+                />
+            )}
+            {safeActiveTab === "Analytics" && <Analytics transactions={transactions} tanks={tanks} />}
+            {safeActiveTab === "Orders" && <Orders purchaseOrders={purchaseOrders} refreshData={refreshData} selectedStationId={selectedStationId} />}
+            {safeActiveTab === "Profile" && <Profile />}
+            {safeActiveTab === "Settings" && <Settings />}
+            {safeActiveTab === "Stations" && canSeeStations && <Stations />}
 
             {/* Fallback */}
             {safeActiveTab !== "Dashboard" && safeActiveTab !== "Inventory" && safeActiveTab !== "Operations" && safeActiveTab !== "Analytics" && safeActiveTab !== "Orders" && safeActiveTab !== "Profile" && safeActiveTab !== "Settings" && safeActiveTab !== "Stations" && (

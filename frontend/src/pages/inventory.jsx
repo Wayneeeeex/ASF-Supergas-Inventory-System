@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, Bell, Package, TrendingUp, AlertTriangle, Truck, Plus, X } from "lucide-react";
 import Pagination from "../components/pagination";
+import { useAuth } from "../context/AuthContext";
 
 // Helper functions & constants
 const CATEGORY_FILTERS = [
@@ -52,9 +53,11 @@ const statusDotColor = {
 export default function Inventory({
                                       tanks, products, categoryBars, purchaseOrders, alertOpen, setAlertOpen,
                                       criticalCount, criticalNames, query, setQuery, activeCat, setActiveCat,
-                                      activeStatus, setActiveStatus
+                                      activeStatus, setActiveStatus, refreshData, selectedStationId
                                   }) {
+    const { token } = useAuth();
     const [page, setPage] = useState(1);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Any time the visible product set changes shape (search/filter), snap back to page 1
     // so you can't get stranded on a page that no longer has any rows.
@@ -172,7 +175,7 @@ export default function Inventory({
                 <div className="bg-white border border-slate-200 shadow-sm rounded-2xl px-4 sm:px-5 py-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold text-sm tracking-wide text-blue-950">PURCHASE ORDERS</h2>
-                        <button className="flex items-center gap-1 text-xs font-bold text-yellow-600 hover:text-yellow-700">
+                        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-1 text-xs font-bold text-yellow-600 hover:text-yellow-700">
                             <Plus size={13} /> New PO
                         </button>
                     </div>
@@ -318,6 +321,18 @@ export default function Inventory({
                     onPageChange={setPage}
                 />
             </div>
+
+            {isModalOpen && (
+                <CreatePoModal
+                    token={token}
+                    selectedStationId={selectedStationId}
+                    onClose={() => setIsModalOpen(false)}
+                    onSaved={() => {
+                        setIsModalOpen(false);
+                        refreshData();
+                    }}
+                />
+            )}
         </div>
     );
 }
@@ -347,5 +362,153 @@ function Chip({ active, onClick, children }) {
         <button onClick={onClick} className={`text-[11px] font-semibold px-3.5 py-1.5 rounded-lg border transition-colors ${active ? "bg-yellow-400 border-yellow-400 text-blue-950" : "bg-white border-slate-200 text-slate-500 hover:border-blue-600 hover:text-blue-700"}`}>
             {children}
         </button>
+    );
+}
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+
+function CreatePoModal({ token, selectedStationId, onClose, onSaved }) {
+    const [vendor, setVendor] = useState("");
+    const [type, setType] = useState("Bulk Fuel");
+    const [items, setItems] = useState("");
+    const [amount, setAmount] = useState("");
+    const [etaDate, setEtaDate] = useState("");
+    
+    const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        setError("");
+        setSaving(true);
+
+        const amountNum = parseFloat(amount);
+        if (isNaN(amountNum) || amountNum <= 0) {
+            setError("Please enter a valid amount");
+            setSaving(false);
+            return;
+        }
+
+        const po_number = `PO-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        try {
+            const res = await fetch(`${API_URL}/purchase-orders`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    po_number,
+                    vendor,
+                    status: "Pending",
+                    amount: amountNum,
+                    eta_date: etaDate,
+                    type,
+                    items,
+                    station_id: selectedStationId || 1
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to create Purchase Order");
+
+            onSaved();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200 text-left">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-bold text-lg text-slate-800">Create New Purchase Order</h2>
+                    <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-3 py-2 mb-4 flex items-center gap-1.5">
+                        <span className="text-red-500">⚠</span> {error}
+                    </div>
+                )}
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Vendor Name</label>
+                        <input
+                            value={vendor}
+                            onChange={(e) => setVendor(e.target.value)}
+                            required
+                            placeholder="e.g. Petron Corporation"
+                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white transition-all"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Order Type</label>
+                            <select
+                                value={type}
+                                onChange={(e) => setType(e.target.value)}
+                                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white"
+                            >
+                                <option value="Bulk Fuel">Bulk Fuel</option>
+                                <option value="Lubricants">Lubricants</option>
+                                <option value="Cylinders">Cylinders</option>
+                                <option value="Safety">Safety</option>
+                                <option value="Convenience">Convenience</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Total Amount (₱)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                required
+                                placeholder="0.00"
+                                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Items Summary</label>
+                        <input
+                            value={items}
+                            onChange={(e) => setItems(e.target.value)}
+                            required
+                            placeholder="e.g. 5,000L Unleaded 95, 24x Brake Fluid"
+                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white transition-all"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Estimated Delivery Date (ETA)</label>
+                        <input
+                            type="date"
+                            value={etaDate}
+                            onChange={(e) => setEtaDate(e.target.value)}
+                            required
+                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white"
+                        />
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full mt-6 bg-blue-950 hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg disabled:opacity-60 transition-colors"
+                >
+                    {saving ? "Creating PO..." : "Generate Purchase Order"}
+                </button>
+            </form>
+        </div>
     );
 }

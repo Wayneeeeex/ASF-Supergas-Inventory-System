@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
                                      name          VARCHAR(100) NOT NULL,
     email         VARCHAR(150) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    phone         VARCHAR(20) NULL DEFAULT '+63 917 555 0192',
     role          ENUM('admin','manager','staff') NOT NULL DEFAULT 'staff',
     station_id    INT NULL,             -- NULL = access to all stations (e.g. an owner/admin)
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

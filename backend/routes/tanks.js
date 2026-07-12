@@ -33,6 +33,9 @@ router.get("/", requireAuth, async (req, res) => {
         vol: `${t.volume_liters.toLocaleString()} L`,
         cap: `${t.capacity_liters.toLocaleString()} L`,
         status,
+        price_per_liter: t.price_per_liter,
+        volume_liters: t.volume_liters,
+        capacity_liters: t.capacity_liters,
       };
     });
     res.json(result);
@@ -52,8 +55,22 @@ router.put("/:id", requireAuth, async (req, res) => {
         return res.status(403).json({ error: "Not your station" });
       }
     }
-    const { volume_liters } = req.body;
-    await pool.query("UPDATE tanks SET volume_liters = ? WHERE id = ?", [volume_liters, req.params.id]);
+    const { volume_liters, price_per_liter } = req.body;
+    const updates = [];
+    const params = [];
+    if (volume_liters !== undefined) {
+      updates.push("volume_liters = ?");
+      params.push(volume_liters);
+    }
+    if (price_per_liter !== undefined) {
+      updates.push("price_per_liter = ?");
+      params.push(price_per_liter);
+    }
+    if (updates.length === 0) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
+    params.push(req.params.id);
+    await pool.query(`UPDATE tanks SET ${updates.join(", ")} WHERE id = ?`, params);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);

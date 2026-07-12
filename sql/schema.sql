@@ -40,24 +40,25 @@ CREATE TABLE tanks (
                        name            VARCHAR(60)  NOT NULL,
                        volume_liters   INT          NOT NULL,   -- current volume
                        capacity_liters INT          NOT NULL,   -- max capacity
+                       price_per_liter DECIMAL(10,2) NOT NULL DEFAULT 0.00,
                        updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
                            ON UPDATE CURRENT_TIMESTAMP,
                        CONSTRAINT fk_tanks_station FOREIGN KEY (station_id) REFERENCES stations(id)
 );
 
 -- Pantukan - Main
-INSERT INTO tanks (station_id, name, volume_liters, capacity_liters) VALUES
-                                                                         (1, 'Unleaded 91', 12240, 18000),
-                                                                         (1, 'Unleaded 95', 3960,  18000),
-                                                                         (1, 'Diesel',      16200, 20000),
-                                                                         (1, 'LPG Bulk',    900,   10000);
+INSERT INTO tanks (station_id, name, volume_liters, capacity_liters, price_per_liter) VALUES
+                                                                         (1, 'Unleaded 91', 12240, 18000, 60.50),
+                                                                         (1, 'Unleaded 95', 3960,  18000, 65.20),
+                                                                         (1, 'Diesel',      16200, 20000, 58.00),
+                                                                         (1, 'LPG Bulk',    900,   10000, 45.00);
 
 -- Magdum Station
-INSERT INTO tanks (station_id, name, volume_liters, capacity_liters) VALUES
-                                                                         (2, 'Unleaded 91', 9800,  15000),
-                                                                         (2, 'Unleaded 95', 6200,  15000),
-                                                                         (2, 'Diesel',      11400, 16000),
-                                                                         (2, 'LPG Bulk',    3100,  8000);
+INSERT INTO tanks (station_id, name, volume_liters, capacity_liters, price_per_liter) VALUES
+                                                                         (2, 'Unleaded 91', 9800,  15000, 60.50),
+                                                                         (2, 'Unleaded 95', 6200,  15000, 65.20),
+                                                                         (2, 'Diesel',      11400, 16000, 58.00),
+                                                                         (2, 'LPG Bulk',    3100,  8000,  45.00);
 
 -- ------------------------------------------------------------
 -- PRODUCTS  (shop / forecourt inventory, per station)
@@ -126,6 +127,8 @@ CREATE TABLE purchase_orders (
                                  station_id INT NOT NULL,
                                  po_number  VARCHAR(20)  NOT NULL UNIQUE,
                                  vendor     VARCHAR(120) NOT NULL,
+                                 type       VARCHAR(50)  NULL,
+                                 items      VARCHAR(255) NULL,
                                  status     ENUM('In Transit','Pending','Delayed','Delivered') NOT NULL DEFAULT 'Pending',
                                  amount     DECIMAL(12,2) NOT NULL DEFAULT 0,
                                  eta_date   DATE NOT NULL,
@@ -133,16 +136,16 @@ CREATE TABLE purchase_orders (
 );
 
 -- Pantukan - Main
-INSERT INTO purchase_orders (station_id, po_number, vendor, status, amount, eta_date) VALUES
-                                                                                          (1, 'PO-4417', 'Petron Fuels Distribution',    'In Transit', 210000.00, '2026-07-14'),
-                                                                                          (1, 'PO-4416', 'Davao Lubes & Filters Co.',    'Pending',     38650.00, '2026-07-13'),
-                                                                                          (1, 'PO-4415', 'SafeGuard Workwear Supply',    'Delayed',     17800.00, '2026-07-17'),
-                                                                                          (1, 'PO-4414', 'Isla LPG Traders Inc.',        'Delivered',   19950.00, '2026-07-11');
+INSERT INTO purchase_orders (station_id, po_number, vendor, type, items, status, amount, eta_date) VALUES
+                                                                                          (1, 'PO-4417', 'Petron Fuels Distribution',    'Bulk Fuel',   '18,000L Diesel',                  'In Transit', 210000.00, '2026-07-14'),
+                                                                                          (1, 'PO-4416', 'Davao Lubes & Filters Co.',    'Lubricants',  '48x Synthetic Motor Oil 1L',      'Pending',     38650.00, '2026-07-13'),
+                                                                                          (1, 'PO-4415', 'SafeGuard Workwear Supply',    'Safety',      '20x Safety Boots & Vests',        'Delayed',     17800.00, '2026-07-17'),
+                                                                                          (1, 'PO-4414', 'Isla LPG Traders Inc.',        'Cylinders',   '20x 11kg LPG Cylinders',          'Delivered',   19950.00, '2026-07-11');
 
 -- Magdum Station
-INSERT INTO purchase_orders (station_id, po_number, vendor, status, amount, eta_date) VALUES
-                                                                                          (2, 'PO-5201', 'Davao Lubes & Filters Co.', 'Pending',    26400.00, '2026-07-15'),
-                                                                                          (2, 'PO-5202', 'SafeGuard Workwear Supply', 'In Transit', 9450.00,  '2026-07-13');
+INSERT INTO purchase_orders (station_id, po_number, vendor, type, items, status, amount, eta_date) VALUES
+                                                                                          (2, 'PO-5201', 'Davao Lubes & Filters Co.', 'Lubricants',  '30x Oil & Air Filters',           'Pending',    26400.00, '2026-07-15'),
+                                                                                          (2, 'PO-5202', 'SafeGuard Workwear Supply', 'Safety',      '10x Nitrile Gloves & Vests',      'In Transit', 9450.00,  '2026-07-13');
 
 SET FOREIGN_KEY_CHECKS = 1;
 

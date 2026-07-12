@@ -23,6 +23,8 @@ router.get("/", requireAuth, async (req, res) => {
       station_id: po.station_id,
       vendor: po.vendor,
       status: po.status,
+      type: po.type,
+      items: po.items,
       amount: `₱${Number(po.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
       eta: new Date(po.eta_date).toISOString().slice(5, 10),
     }));
@@ -37,10 +39,10 @@ router.get("/", requireAuth, async (req, res) => {
 router.post("/", requireAuth, async (req, res) => {
   try {
     const stationId = req.user.role === "manager" ? req.user.station_id : req.body.station_id;
-    const { po_number, vendor, status, amount, eta_date } = req.body;
+    const { po_number, vendor, status, amount, eta_date, type, items } = req.body;
     const [result] = await pool.query(
-        `INSERT INTO purchase_orders (station_id, po_number, vendor, status, amount, eta_date) VALUES (?, ?, ?, ?, ?, ?)`,
-        [stationId, po_number, vendor, status, amount, eta_date]
+        `INSERT INTO purchase_orders (station_id, po_number, vendor, status, amount, eta_date, type, items) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [stationId, po_number, vendor, status || 'Pending', amount, eta_date, type || null, items || null]
     );
     res.status(201).json({ id: result.insertId });
   } catch (err) {
