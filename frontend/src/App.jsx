@@ -7,7 +7,9 @@ import Analytics from "./pages/analytics";
 import Orders from "./pages/orders";
 import Profile from "./pages/profile";
 import Settings from "./pages/settings";
+import Stations from "./pages/stations-page";
 import Login from "./pages/login";
+import StationFilter from "./components/station-filter";
 import { useAuth } from "./context/AuthContext";
 import { Menu } from "lucide-react";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
@@ -21,9 +23,15 @@ async function getJSON(path, token) {
 }
 
 export default function App() {
-  const { user, token, checking } = useAuth();
+  const { user, token, checking, logout } = useAuth();
 
   const [activeTab, setActiveTab] = useState("Dashboard");
+
+  // Station filter — admin only. null = "All Stations". A manager's data is
+  // always locked server-side to their own station regardless of this value,
+  // so it's simply never shown to them.
+  const [stations, setStations] = useState([]);
+  const [selectedStationId, setSelectedStationId] = useState(null);
 
   // Global State
   const [tanks, setTanks] = useState([]);
@@ -41,7 +49,20 @@ export default function App() {
   const [alertOpen, setAlertOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Load station data only once we know who's logged in
+  // Load the list of stations once logged in (used to populate the filter;
+  // for a manager this just comes back as their one station, harmless).
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    getJSON("/stations", token)
+        .then((data) => { if (!cancelled) setStations(data); })
+        .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user, token]);
+
+  // Load station-scoped data. Re-runs whenever the admin's station filter
+  // changes — every page reading tanks/products/purchaseOrders from this
+  // shared state (Dashboard, Inventory, Orders, ...) reflects it automatically.
   useEffect(() => {
     if (!user) return; // not logged in yet — nothing to load
     let cancelled = false;
@@ -49,12 +70,12 @@ export default function App() {
     async function load() {
       try {
         setLoading(true);
-        // Using Promise.allSettled logic to prevent API crash while frontend builds
+        const qs = selectedStationId ? `?station_id=${selectedStationId}` : "";
         const [tanksData, barsData, poData, productsData] = await Promise.all([
-          getJSON("/tanks", token).catch(() => []),
-          getJSON("/products/stock-by-category", token).catch(() => []),
-          getJSON("/purchase-orders", token).catch(() => []),
-          getJSON("/products", token).catch(() => []),
+          getJSON(`/tanks${qs}`, token).catch(() => []),
+          getJSON(`/products/stock-by-category${qs}`, token).catch(() => []),
+          getJSON(`/purchase-orders${qs}`, token).catch(() => []),
+          getJSON(`/products${qs}`, token).catch(() => []),
         ]);
         if (cancelled) return;
 
@@ -80,7 +101,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [user, token]);
+  }, [user, token, selectedStationId]);
 
   const criticalCount = useMemo(
       () => products.filter((p) => p.status === "Critical").length,
@@ -106,6 +127,11 @@ export default function App() {
   if (!user) {
     return <Login />;
   }
+
+  // Defense in depth: even if someone forces activeTab to "Stations" some
+  // other way, a non-admin never actually renders that page.
+  const canSeeStations = user.role === "admin";
+  const safeActiveTab = activeTab === "Stations" && !canSeeStations ? "Dashboard" : activeTab;
 
   if (loading) {
     return (
@@ -134,21 +160,32 @@ export default function App() {
           </button>
         </div>
 
-        {/* SIDEBAR (Pass the new props for mobile control) */}
+        {/* SIDEBAR (Pass the new props for mobile control + auth) */}
         <Sidebar
-            activeTab={activeTab}
+            activeTab={safeActiveTab}
             setActiveTab={setActiveTab}
             isOpen={isMobileMenuOpen}
             setIsOpen={setIsMobileMenuOpen}
+            user={user}
+            onLogout={logout}
         />
 
         {/* MAIN CONTENT AREA */}
         <main className="flex-1 min-w-0 bg-slate-50 h-[calc(100vh-72px)] md:h-screen overflow-y-auto">
           <div className="max-w-[1600px] mx-auto px-4 md:px-10 lg:px-12 py-6 md:py-8">
 
+            {/* STATION FILTER — admin only, applies to every page below */}
+            {canSeeStations && safeActiveTab !== "Stations" && (
+                <StationFilter
+                    stations={stations}
+                    selectedId={selectedStationId}
+                    onSelect={setSelectedStationId}
+                />
+            )}
+
             {/* VIEW ROUTING */}
-            {activeTab === "Dashboard" && <Dashboard tanks={tanks}/>}
-            {activeTab === "Inventory" && (
+            {safeActiveTab === "Dashboard" && <Dashboard tanks={tanks}/>}
+            {safeActiveTab === "Inventory" && (
                 <Inventory
                     tanks={tanks}
                     products={products}
@@ -166,16 +203,17 @@ export default function App() {
                     setActiveStatus={setActiveStatus}
                 />
             )}
-            {activeTab === "Operations" && <Operations dummyTanks={tanks}/>}
-            {activeTab === "Analytics" && <Analytics/>}
-            {activeTab === "Orders" && <Orders purchaseOrders={purchaseOrders}/>}
-            {activeTab === "Profile" && <Profile/>}
-            {activeTab === "Settings" && <Settings/>}
+            {safeActiveTab === "Operations" && <Operations dummyTanks={tanks}/>}
+            {safeActiveTab === "Analytics" && <Analytics/>}
+            {safeActiveTab === "Orders" && <Orders purchaseOrders={purchaseOrders}/>}
+            {safeActiveTab === "Profile" && <Profile/>}
+            {safeActiveTab === "Settings" && <Settings/>}
+            {safeActiveTab === "Stations" && canSeeStations && <Stations/>}
 
             {/* Fallback */}
-            {activeTab !== "Dashboard" && activeTab !== "Inventory" && activeTab !== "Operations" && activeTab !== "Analytics" && activeTab !== "Orders" && activeTab !== "Profile" && activeTab !== "Settings" && (
+            {safeActiveTab !== "Dashboard" && safeActiveTab !== "Inventory" && safeActiveTab !== "Operations" && safeActiveTab !== "Analytics" && safeActiveTab !== "Orders" && safeActiveTab !== "Profile" && safeActiveTab !== "Settings" && safeActiveTab !== "Stations" && (
                 <div className="flex items-center justify-center h-64 text-slate-400 font-medium">
-                  {activeTab} module is under construction.
+                  {safeActiveTab} module is under construction.
                 </div>
             )}
           </div>

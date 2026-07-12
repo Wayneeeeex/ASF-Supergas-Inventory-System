@@ -1,18 +1,30 @@
 import { Router } from "express";
 import { pool } from "../db.js";
+import { requireAuth } from "../middleware/requireAuth.js";
 
 const router = Router();
 
-// GET /api/purchase-orders
-router.get("/", async (req, res) => {
+function resolveStationId(req) {
+  if (req.user.role === "manager") return req.user.station_id;
+  return req.query.station_id || null;
+}
+
+// GET /api/purchase-orders?station_id=1
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM purchase_orders ORDER BY eta_date ASC");
+    const stationId = resolveStationId(req);
+    const params = [];
+    const where = stationId ? "WHERE station_id = ?" : "";
+    if (stationId) params.push(stationId);
+
+    const [rows] = await pool.query(`SELECT * FROM purchase_orders ${where} ORDER BY eta_date ASC`, params);
     const result = rows.map((po) => ({
       id: po.po_number,
+      station_id: po.station_id,
       vendor: po.vendor,
       status: po.status,
       amount: `₱${Number(po.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
-      eta: new Date(po.eta_date).toISOString().slice(5, 10), // MM-DD
+      eta: new Date(po.eta_date).toISOString().slice(5, 10),
     }));
     res.json(result);
   } catch (err) {
@@ -22,12 +34,13 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/purchase-orders
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
+    const stationId = req.user.role === "manager" ? req.user.station_id : req.body.station_id;
     const { po_number, vendor, status, amount, eta_date } = req.body;
     const [result] = await pool.query(
-      `INSERT INTO purchase_orders (po_number, vendor, status, amount, eta_date) VALUES (?, ?, ?, ?, ?)`,
-      [po_number, vendor, status, amount, eta_date]
+        `INSERT INTO purchase_orders (station_id, po_number, vendor, status, amount, eta_date) VALUES (?, ?, ?, ?, ?, ?)`,
+        [stationId, po_number, vendor, status, amount, eta_date]
     );
     res.status(201).json({ id: result.insertId });
   } catch (err) {

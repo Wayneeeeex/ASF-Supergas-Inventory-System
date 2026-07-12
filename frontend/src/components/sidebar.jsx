@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutGrid, Fuel, ShoppingCart, BarChart3, Settings, LogOut, ClipboardList, User, X } from "lucide-react";
+import { LayoutGrid, Fuel, ShoppingCart, BarChart3, Settings, LogOut, ClipboardList, User, X, Building2 } from "lucide-react";
 
 const NAV_ITEMS = [
     { icon: LayoutGrid, label: "Dashboard" },
@@ -7,15 +7,25 @@ const NAV_ITEMS = [
     { icon: ClipboardList, label: "Operations" },
     { icon: ShoppingCart, label: "Orders" },
     { icon: BarChart3, label: "Analytics" },
+    { icon: Building2, label: "Stations", adminOnly: true },
     { icon: User, label: "Profile"},
     { icon: Settings, label: "Settings" },
 ];
 
-export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) {
+function initials(name) {
+    if (!name) return "?";
+    return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+}
+
+export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen, user, onLogout }) {
     const handleSelect = (label) => {
         setActiveTab(label);
         setIsOpen?.(false); // close the drawer after picking a page, on mobile
     };
+
+    // "Stations" is hidden from anyone who isn't an admin — station managers
+    // shouldn't even know the page exists, let alone see other stations in it.
+    const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || user?.role === "admin");
 
     return (
         <>
@@ -56,7 +66,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
                 </div>
 
                 <nav className="flex flex-col gap-1">
-                    {NAV_ITEMS.map(({ icon: Icon, label }) => {
+                    {visibleItems.map(({ icon: Icon, label }) => {
                         const active = label === activeTab;
                         return (
                             <div
@@ -77,13 +87,17 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
 
                 <div className="mt-auto pt-4 border-t border-white/15 flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full bg-yellow-400 text-blue-950 flex items-center justify-center text-xs font-bold shrink-0">
-                        MR
+                        {initials(user?.name)}
                     </div>
                     <div className="min-w-0">
-                        <div className="text-xs font-semibold truncate">ASF Supergas</div>
-                        <div className="text-[10px] text-white/60 truncate">Station Manager</div>
+                        <div className="text-xs font-semibold truncate">{user?.name || "Unknown"}</div>
+                        <div className="text-[10px] text-white/60 truncate capitalize">
+                            {user?.role === "manager" ? "Station Manager" : user?.role || ""}
+                        </div>
                     </div>
-                    <LogOut size={14} className="ml-auto text-white/50 shrink-0 cursor-pointer hover:text-white" />
+                    <button onClick={onLogout} className="ml-auto shrink-0" title="Log out">
+                        <LogOut size={14} className="text-white/50 cursor-pointer hover:text-white" />
+                    </button>
                 </div>
             </aside>
         </>

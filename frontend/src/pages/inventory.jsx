@@ -76,7 +76,6 @@ export default function Inventory({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 className="font-bold text-xl sm:text-2xl tracking-wide text-blue-950">STATION INVENTORY</h1>
-                    <div className="text-xs text-slate-500 font-medium mt-1">Bunawan Depot · Davao Region</div>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="relative flex-1 sm:w-64 md:w-72 min-w-0">

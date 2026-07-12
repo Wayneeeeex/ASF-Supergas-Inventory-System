@@ -1,18 +1,33 @@
 import { Router } from "express";
 import { pool } from "../db.js";
+import { requireAuth } from "../middleware/requireAuth.js";
 
 const router = Router();
 
-// GET /api/tanks — computes % full and status band from raw volumes,
-// so the DB only ever stores the real numbers.
-router.get("/", async (req, res) => {
+// Managers are hard-locked to their own station's data — their JWT already
+// carries station_id from login, so there's no query param they can pass to
+// override it. Admins can optionally filter with ?station_id=, or omit it
+// to see everything.
+function resolveStationId(req) {
+  if (req.user.role === "manager") return req.user.station_id;
+  return req.query.station_id || null;
+}
+
+// GET /api/tanks?station_id=1
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM tanks ORDER BY id");
+    const stationId = resolveStationId(req);
+    const params = [];
+    const where = stationId ? "WHERE station_id = ?" : "";
+    if (stationId) params.push(stationId);
+
+    const [rows] = await pool.query(`SELECT * FROM tanks ${where} ORDER BY id`, params);
     const result = rows.map((t) => {
       const pct = Math.round((t.volume_liters / t.capacity_liters) * 100);
       const status = pct <= 15 ? "critical" : pct <= 35 ? "low" : "healthy";
       return {
         id: t.id,
+        station_id: t.station_id,
         name: t.name,
         pct,
         vol: `${t.volume_liters.toLocaleString()} L`,
@@ -27,9 +42,16 @@ router.get("/", async (req, res) => {
   }
 });
 
-// PUT /api/tanks/:id  — update a reading (e.g. after a delivery or dip test)
-router.put("/:id", async (req, res) => {
+// PUT /api/tanks/:id
+router.put("/:id", requireAuth, async (req, res) => {
   try {
+    // A manager can only update a tank that actually belongs to their station
+    if (req.user.role === "manager") {
+      const [[tank]] = await pool.query("SELECT station_id FROM tanks WHERE id = ?", [req.params.id]);
+      if (!tank || tank.station_id !== req.user.station_id) {
+        return res.status(403).json({ error: "Not your station" });
+      }
+    }
     const { volume_liters } = req.body;
     await pool.query("UPDATE tanks SET volume_liters = ? WHERE id = ?", [volume_liters, req.params.id]);
     res.json({ ok: true });
