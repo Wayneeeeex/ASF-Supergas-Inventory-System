@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect } from "react";
-import Sidebar from "./components/Sidebar";
-import Inventory from "./pages/Inventory";
-import Operations from "./pages/Operations";
-import Dashboard from "./pages/Dashboard";
-import Analytics from "./pages/Analytics";
-import Orders from "./pages/Orders";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
+import Sidebar from "./components/sidebar";
+import Inventory from "./pages/inventory";
+import Operations from "./pages/operations";
+import Dashboard from "./pages/dashboard";
+import Analytics from "./pages/analytics";
+import Orders from "./pages/orders";
+import Profile from "./pages/profile";
+import Settings from "./pages/settings";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 async function getJSON(path) {
