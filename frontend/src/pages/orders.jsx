@@ -16,15 +16,35 @@ export default function Orders({ purchaseOrders, refreshData, selectedStationId 
         "Pending": "bg-yellow-50 text-yellow-700 border-yellow-200",
         "In Transit": "bg-blue-50 text-blue-700 border-blue-200",
         "Delivered": "bg-emerald-50 text-emerald-700 border-emerald-200",
-        "Delayed": "bg-rose-50 text-rose-700 border-rose-200"
+        "Delayed": "bg-rose-50 text-rose-700 border-rose-200",
+        "Paid": "bg-teal-50 text-teal-700 border-teal-200"
     };
 
     const statusIcons = {
         "Pending": <Clock size={14} />,
         "In Transit": <Truck size={14} />,
         "Delivered": <CheckCircle2 size={14} />,
-        "Delayed": <Clock size={14} />
+        "Delayed": <Clock size={14} />,
+        "Paid": <CheckCircle2 size={14} />
     };
+
+    async function handleStatusChange(poNumber, newStatus) {
+        try {
+            const res = await fetch(`${API_URL}/purchase-orders/${poNumber}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to update PO status");
+            refreshData();
+        } catch (err) {
+            alert(`Error updating PO status: ${err.message}`);
+        }
+    }
 
     const filtered = useMemo(
         () => (purchaseOrders || []).filter((o) =>
@@ -112,11 +132,20 @@ export default function Orders({ purchaseOrders, refreshData, selectedStationId 
                                 <td className="py-4 px-5 border-b border-slate-100">
                                     <div className="font-bold text-emerald-700 text-sm">{order.amount}</div>
                                 </td>
-                                <td className="py-4 px-5 border-b border-slate-100">
-                                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md border ${statusStyles[order.status] || "bg-slate-50 border-slate-200 text-slate-600"}`}>
-                                        {statusIcons[order.status] || <Clock size={14} />}
-                                        {order.status}
-                                    </span>
+                                <td className="py-4 px-5 border-b border-slate-100" onClick={(e) => e.stopPropagation()}>
+                                    <select
+                                        value={order.status}
+                                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                                        className={`text-xs font-bold px-2.5 py-1.5 rounded-md border outline-none cursor-pointer transition-all ${
+                                            statusStyles[order.status] || "bg-slate-50 border-slate-200 text-slate-600"
+                                        }`}
+                                    >
+                                        <option value="Pending">Pending</option>
+                                        <option value="In Transit">In Transit</option>
+                                        <option value="Delayed">Delayed</option>
+                                        <option value="Delivered">Delivered</option>
+                                        <option value="Paid">Paid</option>
+                                    </select>
                                 </td>
                                 <td className="py-4 px-5 border-b border-slate-100 text-slate-500 text-sm font-medium">
                                     {order.eta}
@@ -153,10 +182,19 @@ export default function Orders({ purchaseOrders, refreshData, selectedStationId 
                                     <Package size={16} className="text-slate-400 shrink-0" />
                                     <span className="font-bold text-slate-800 text-sm truncate">{order.id}</span>
                                 </div>
-                                <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-md border shrink-0 ${statusStyles[order.status] || "bg-slate-50 border-slate-200 text-slate-600"}`}>
-                                    {statusIcons[order.status] || <Clock size={14} />}
-                                    {order.status}
-                                </span>
+                                <select
+                                    value={order.status}
+                                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                                    className={`text-[11px] font-bold px-2 py-1 rounded-md border outline-none cursor-pointer transition-all ${
+                                        statusStyles[order.status] || "bg-slate-50 border-slate-200 text-slate-600"
+                                    }`}
+                                >
+                                    <option value="Pending">Pending</option>
+                                    <option value="In Transit">In Transit</option>
+                                    <option value="Delayed">Delayed</option>
+                                    <option value="Delivered">Delivered</option>
+                                    <option value="Paid">Paid</option>
+                                </select>
                             </div>
 
                             <div className="font-semibold text-slate-800 text-sm">{order.vendor}</div>

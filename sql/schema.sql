@@ -129,7 +129,7 @@ CREATE TABLE purchase_orders (
                                  vendor     VARCHAR(120) NOT NULL,
                                  type       VARCHAR(50)  NULL,
                                  items      VARCHAR(255) NULL,
-                                 status     ENUM('In Transit','Pending','Delayed','Delivered') NOT NULL DEFAULT 'Pending',
+                                 status     ENUM('In Transit','Pending','Delayed','Delivered','Paid') NOT NULL DEFAULT 'Pending',
                                  amount     DECIMAL(12,2) NOT NULL DEFAULT 0,
                                  eta_date   DATE NOT NULL,
                                  CONSTRAINT fk_po_station FOREIGN KEY (station_id) REFERENCES stations(id)

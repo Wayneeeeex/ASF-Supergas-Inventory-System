@@ -51,4 +51,23 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
+// PUT /api/purchase-orders/:po_number
+router.put("/:po_number", requireAuth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ["In Transit", "Pending", "Delayed", "Delivered", "Paid"];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid or missing status" });
+    }
+    await pool.query(
+      "UPDATE purchase_orders SET status = ? WHERE po_number = ?",
+      [status, req.params.po_number]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update purchase order status" });
+  }
+});
+
 export default router;

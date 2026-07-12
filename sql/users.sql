@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     email         VARCHAR(150) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone         VARCHAR(20) NULL DEFAULT '+63 917 555 0192',
-    role          ENUM('admin','manager','staff') NOT NULL DEFAULT 'staff',
+    role          ENUM('admin','manager','staff','purchase_order') NOT NULL DEFAULT 'staff',
     station_id    INT NULL,             -- NULL = access to all stations (e.g. an owner/admin)
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_users_station FOREIGN KEY (station_id) REFERENCES stations(id)

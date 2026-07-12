@@ -23,9 +23,15 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen, us
         setIsOpen?.(false); // close the drawer after picking a page, on mobile
     };
 
-    // "Stations" is hidden from anyone who isn't an admin — station managers
-    // shouldn't even know the page exists, let alone see other stations in it.
-    const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || user?.role === "admin");
+    // Hide tabs not accessible to the PO Coordinator role. Admins see everything,
+    // Managers see standard tabs, and PO Coordinators only see Orders, Profile, and Settings.
+    const visibleItems = NAV_ITEMS.filter((item) => {
+        if (item.adminOnly && user?.role !== "admin") return false;
+        if (user?.role === "purchase_order") {
+            return ["Orders", "Profile", "Settings"].includes(item.label);
+        }
+        return true;
+    });
 
     return (
         <>

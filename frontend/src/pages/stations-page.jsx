@@ -10,6 +10,7 @@ export default function Stations() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [modalStation, setModalStation] = useState(null);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     async function load() {
         try {
@@ -34,11 +35,20 @@ export default function Stations() {
 
     return (
         <div className="animate-in fade-in duration-300">
-            <div className="mb-6">
-                <h1 className="font-bold text-xl sm:text-2xl tracking-wide text-blue-950">STATIONS</h1>
-                <div className="text-xs text-slate-500 font-medium mt-1">
-                    Manage locations and assign station managers
+            <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                    <h1 className="font-bold text-xl sm:text-2xl tracking-wide text-blue-950">STATIONS</h1>
+                    <div className="text-xs text-slate-500 font-medium mt-1">
+                        Manage locations and assign station managers
+                    </div>
                 </div>
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg shadow-sm text-sm font-bold hover:bg-blue-700 transition-colors"
+                >
+                    <Plus size={16} />
+                    Add Branch
+                </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -97,6 +107,14 @@ export default function Stations() {
                     token={token}
                     onClose={() => setModalStation(null)}
                     onSaved={() => { setModalStation(null); load(); }}
+                />
+            )}
+
+            {isAddModalOpen && (
+                <AddStationModal
+                    token={token}
+                    onClose={() => setIsAddModalOpen(false)}
+                    onSaved={() => { setIsAddModalOpen(false); load(); }}
                 />
             )}
         </div>
@@ -193,6 +211,93 @@ function ManagerModal({ station, token, onClose, onSaved }) {
                     className="w-full bg-blue-950 hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg disabled:opacity-60"
                 >
                     {saving ? "Saving..." : isEditing ? "Save Changes" : "Create Manager Account"}
+                </button>
+            </form>
+        </div>
+    );
+}
+
+function AddStationModal({ token, onClose, onSaved }) {
+    const [name, setName] = useState("");
+    const [code, setCode] = useState("");
+    const [address, setAddress] = useState("");
+    const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        setError("");
+        setSaving(true);
+        try {
+            const res = await fetch(`${API_URL}/stations`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ name, code, address })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to create station");
+            onSaved();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-left">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-bold text-lg text-slate-800">Add New Branch</h2>
+                    <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-3 py-2 mb-4">
+                        {error}
+                    </div>
+                )}
+
+                <div className="space-y-4 mb-5">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Branch Name</label>
+                        <input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            required
+                            placeholder="e.g. Bunawan Station"
+                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white transition-all"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Branch Code</label>
+                        <input
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                            required
+                            placeholder="e.g. BUNAWAN"
+                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white transition-all"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Address</label>
+                        <input
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                            placeholder="e.g. Bunawan, Davao City"
+                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:border-blue-600 focus:bg-white transition-all"
+                        />
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full bg-blue-950 hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg disabled:opacity-60 transition-colors"
+                >
+                    {saving ? "Saving..." : "Add Branch"}
                 </button>
             </form>
         </div>

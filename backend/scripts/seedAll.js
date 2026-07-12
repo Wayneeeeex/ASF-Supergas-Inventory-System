@@ -30,6 +30,13 @@ const credentials = [
         password: "manager123",
         role: "manager",
         station_id: 2
+    },
+    {
+        name: "PO Coordinator",
+        email: "po@asfsupergas.com",
+        password: "po123",
+        role: "purchase_order",
+        station_id: null
     }
 ];
 

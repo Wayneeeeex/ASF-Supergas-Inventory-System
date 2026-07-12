@@ -95,6 +95,17 @@ export default function App() {
     return () => { cancelled = true; };
   }, [user, token]);
 
+  // Set default tab based on user role when user logs in
+  useEffect(() => {
+    if (user) {
+      if (user.role === "purchase_order") {
+        setActiveTab("Orders");
+      } else {
+        setActiveTab("Dashboard");
+      }
+    }
+  }, [user]);
+
   // Load station-scoped data. Re-runs whenever the admin's station filter
   // changes — every page reading tanks/products/purchaseOrders from this
   // shared state (Dashboard, Inventory, Orders, ...) reflects it automatically.
@@ -222,7 +233,9 @@ export default function App() {
             {safeActiveTab === "Dashboard" && <Dashboard tanks={tanks} transactions={transactions} setActiveTab={setActiveTab} />}
             {safeActiveTab === "Inventory" && (
                 <Inventory
+                    stations={stations}
                     tanks={tanks}
+                    transactions={transactions}
                     products={products}
                     categoryBars={categoryBars}
                     purchaseOrders={purchaseOrders}

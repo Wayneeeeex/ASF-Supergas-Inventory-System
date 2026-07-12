@@ -9,8 +9,8 @@ const LOG_PAGE_SIZE = 8;
 const FUEL_COLORS = {
     "Unleaded 91": "bg-blue-100 text-blue-700",
     "Unleaded 95": "bg-violet-100 text-violet-700",
-    "Diesel":      "bg-amber-100 text-amber-700",
-    "LPG Bulk":    "bg-emerald-100 text-emerald-700",
+    "Diesel": "bg-amber-100 text-amber-700",
+    "LPG Bulk": "bg-emerald-100 text-emerald-700",
 };
 function fuelColor(name) { return FUEL_COLORS[name] || "bg-slate-100 text-slate-600"; }
 
@@ -68,20 +68,20 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
     const isManager = user?.role === "manager";
 
     // ── Form state ──────────────────────────────────────────────────────────────
-    const [salesForm,    setSalesForm]    = useState({ tank_id: "", liters_sold: "" });
-    const [priceForm,    setPriceForm]    = useState({ tank_id: "", new_price: "" });
+    const [salesForm, setSalesForm] = useState({ tank_id: "", liters_sold: "" });
+    const [priceForm, setPriceForm] = useState({ tank_id: "", new_price: "" });
     const [deliveryForm, setDeliveryForm] = useState({ tank_id: "", liters_added: "", cost_per_liter: "" });
 
     // ── Status banners ─────────────────────────────────────────────────────────
-    const [salesStatus,    setSalesStatus]    = useState({ error: "", success: "" });
-    const [priceStatus,    setPriceStatus]    = useState({ error: "", success: "" });
+    const [salesStatus, setSalesStatus] = useState({ error: "", success: "" });
+    const [priceStatus, setPriceStatus] = useState({ error: "", success: "" });
     const [deliveryStatus, setDeliveryStatus] = useState({ error: "", success: "" });
 
     // ── Log search + pagination ────────────────────────────────────────────────
-    const [salesQuery,    setSalesQuery]    = useState("");
-    const [salesPage,     setSalesPage]     = useState(1);
-    const [depotQuery,    setDepotQuery]    = useState("");
-    const [depotPage,     setDepotPage]     = useState(1);
+    const [salesQuery, setSalesQuery] = useState("");
+    const [salesPage, setSalesPage] = useState(1);
+    const [depotQuery, setDepotQuery] = useState("");
+    const [depotPage, setDepotPage] = useState(1);
 
     // ── Derived data ───────────────────────────────────────────────────────────
     const tankPrices = {};
@@ -96,12 +96,12 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
     // Fuel sales log (category = "sales", type must be a known fuel tank)
     const fuelSalesLog = useMemo(() =>
         transactions.filter((t) => t.category === "sales" && fuelNames.has(t.type)),
-    [transactions, fuelNames]);
+        [transactions, fuelNames]);
 
     // Depot delivery log (category = "delivery")
     const depotLog = useMemo(() =>
         transactions.filter((t) => t.category === "delivery"),
-    [transactions]);
+        [transactions]);
 
     // Filtered & paged — sales
     const filteredSales = useMemo(() => {
@@ -112,8 +112,8 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
     }, [fuelSalesLog, salesQuery]);
 
     const totalSalesPages = Math.max(1, Math.ceil(filteredSales.length / LOG_PAGE_SIZE));
-    const safeSalesPage   = Math.min(salesPage, totalSalesPages);
-    const pagedSales      = filteredSales.slice((safeSalesPage - 1) * LOG_PAGE_SIZE, safeSalesPage * LOG_PAGE_SIZE);
+    const safeSalesPage = Math.min(salesPage, totalSalesPages);
+    const pagedSales = filteredSales.slice((safeSalesPage - 1) * LOG_PAGE_SIZE, safeSalesPage * LOG_PAGE_SIZE);
 
     // Filtered & paged — depot
     const filteredDepot = useMemo(() => {
@@ -124,14 +124,14 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
     }, [depotLog, depotQuery]);
 
     const totalDepotPages = Math.max(1, Math.ceil(filteredDepot.length / LOG_PAGE_SIZE));
-    const safeDepotPage   = Math.min(depotPage, totalDepotPages);
-    const pagedDepot      = filteredDepot.slice((safeDepotPage - 1) * LOG_PAGE_SIZE, safeDepotPage * LOG_PAGE_SIZE);
+    const safeDepotPage = Math.min(depotPage, totalDepotPages);
+    const pagedDepot = filteredDepot.slice((safeDepotPage - 1) * LOG_PAGE_SIZE, safeDepotPage * LOG_PAGE_SIZE);
 
     // ── Financials ─────────────────────────────────────────────────────────────
-    const total_revenue      = fuelSalesLog.reduce((s, t) => s + Number(t.amount), 0);
-    const total_liters_sold  = fuelSalesLog.reduce((s, t) => s + Number(t.liters), 0);
-    const total_cost         = depotLog.reduce((s, t) => s + Number(t.amount), 0);
-    const net_profit_loss    = total_revenue - total_cost;
+    const total_revenue = fuelSalesLog.reduce((s, t) => s + Number(t.amount), 0);
+    const total_liters_sold = fuelSalesLog.reduce((s, t) => s + Number(t.liters), 0);
+    const total_cost = depotLog.reduce((s, t) => s + Number(t.amount), 0);
+    const net_profit_loss = total_revenue - total_cost;
 
     // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -159,14 +159,15 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
 
             const revenue = liters * tank.price_per_liter;
             addTransaction({
-                id:              `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
-                time:            new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
-                type:            tank.name,
-                amount:          revenue,
-                liters:          liters,
+                id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
+                station_id: tank.station_id,
+                time: new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
+                type: tank.name,
+                amount: revenue,
+                liters: liters,
                 price_per_liter: tank.price_per_liter,   // ← stored for the log column
-                date:            new Date().toISOString().slice(0, 10),
-                category:        "sales",
+                date: new Date().toISOString().slice(0, 10),
+                category: "sales",
             });
             refreshData();
             setSalesForm({ tank_id: "", liters_sold: "" });
@@ -179,7 +180,7 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
     async function handlePriceSubmit(e) {
         e.preventDefault();
         setPriceStatus({ error: "", success: "" });
-        const tankId  = priceForm.tank_id;
+        const tankId = priceForm.tank_id;
         const newPrice = parseFloat(priceForm.new_price);
 
         if (!tankId || isNaN(newPrice) || newPrice <= 0) return setPriceStatus({ error: "Please enter a valid price", success: "" });
@@ -206,7 +207,7 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
         setDeliveryStatus({ error: "", success: "" });
         const tankId = deliveryForm.tank_id;
         const liters = parseFloat(deliveryForm.liters_added);
-        const cost   = parseFloat(deliveryForm.cost_per_liter);
+        const cost = parseFloat(deliveryForm.cost_per_liter);
 
         if (!tankId || isNaN(liters) || liters <= 0 || isNaN(cost) || cost <= 0)
             return setDeliveryStatus({ error: "Please enter a valid volume and cost", success: "" });
@@ -225,14 +226,15 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
 
             const deliveryCost = liters * cost;
             addTransaction({
-                id:              `DEL-${Math.floor(1000 + Math.random() * 9000)}`,
-                time:            new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
-                type:            tank.name,
-                amount:          deliveryCost,
-                liters:          liters,
+                id: `DEL-${Math.floor(1000 + Math.random() * 9000)}`,
+                station_id: tank.station_id,
+                time: new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
+                type: tank.name,
+                amount: deliveryCost,
+                liters: liters,
                 price_per_liter: cost,            // ← depot cost/L stored for the log column
-                date:            new Date().toISOString().slice(0, 10),
-                category:        "delivery",
+                date: new Date().toISOString().slice(0, 10),
+                category: "delivery",
             });
             refreshData();
             setDeliveryForm({ tank_id: "", liters_added: "", cost_per_liter: "" });
@@ -257,9 +259,8 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
                         <div className="text-xs text-slate-500 font-medium mt-1">Manage fuel outflow, pricing, and deliveries</div>
                     </div>
                     {stationName && (
-                        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border ${
-                            isManager ? "bg-yellow-50 border-yellow-300 text-yellow-800" : "bg-blue-50 border-blue-200 text-blue-700"
-                        }`}>
+                        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border ${isManager ? "bg-yellow-50 border-yellow-300 text-yellow-800" : "bg-blue-50 border-blue-200 text-blue-700"
+                            }`}>
                             <MapPin size={13} className="shrink-0" />
                             <span>{isManager ? "Managing:" : "Station:"} {stationName}</span>
                         </div>
@@ -270,10 +271,10 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
             {/* KPI BAR */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 {[
-                    { label: "FUEL REVENUE",       value: `₱${total_revenue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`,  color: "text-emerald-600" },
-                    { label: "TOTAL LITERS SOLD",  value: `${total_liters_sold.toLocaleString(undefined,{maximumFractionDigits:1})} L`,                       color: "text-blue-700" },
-                    { label: "ACQUISITION COST",   value: `₱${total_cost.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`,       color: "text-rose-600" },
-                    { label: "NET PROFIT / LOSS",  value: `${net_profit_loss>=0?"+":"-"}₱${Math.abs(net_profit_loss).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`, color: net_profit_loss>=0?"text-blue-700":"text-rose-600" },
+                    { label: "FUEL REVENUE", value: `₱${total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "text-emerald-600" },
+                    { label: "TOTAL LITERS SOLD", value: `${total_liters_sold.toLocaleString(undefined, { maximumFractionDigits: 1 })} L`, color: "text-blue-700" },
+                    { label: "ACQUISITION COST", value: `₱${total_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "text-rose-600" },
+                    { label: "NET PROFIT / LOSS", value: `${net_profit_loss >= 0 ? "+" : "-"}₱${Math.abs(net_profit_loss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: net_profit_loss >= 0 ? "text-blue-700" : "text-rose-600" },
                 ].map((kpi) => (
                     <div key={kpi.label} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
                         <div className="text-[10px] font-bold text-slate-400 tracking-wide mb-1">{kpi.label}</div>
@@ -291,7 +292,7 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
                     {/* Log Daily Sales */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                         <h2 className="text-sm font-bold text-blue-950 tracking-wide mb-4">LOG DAILY SALES OUTFLOW</h2>
-                        {salesStatus.error   && <Banner type="error"   msg={salesStatus.error}   />}
+                        {salesStatus.error && <Banner type="error" msg={salesStatus.error} />}
                         {salesStatus.success && <Banner type="success" msg={salesStatus.success} />}
                         <form onSubmit={handleSalesSubmit} className="space-y-4">
                             <div>
@@ -330,7 +331,7 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
                     {/* Update Retail Price */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                         <h2 className="text-sm font-bold text-blue-950 tracking-wide mb-4">UPDATE RETAIL PUMP PRICE</h2>
-                        {priceStatus.error   && <Banner type="error"   msg={priceStatus.error}   />}
+                        {priceStatus.error && <Banner type="error" msg={priceStatus.error} />}
                         {priceStatus.success && <Banner type="success" msg={priceStatus.success} />}
                         <form onSubmit={handlePriceSubmit} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
@@ -367,7 +368,7 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
                         <h2 className="text-sm font-bold text-blue-950 tracking-wide">LOG BULK FUEL DELIVERY</h2>
                         <Truck size={18} className="text-slate-400" />
                     </div>
-                    {deliveryStatus.error   && <Banner type="error"   msg={deliveryStatus.error}   />}
+                    {deliveryStatus.error && <Banner type="error" msg={deliveryStatus.error} />}
                     {deliveryStatus.success && <Banner type="success" msg={deliveryStatus.success} />}
                     <form onSubmit={handleDeliverySubmit} className="space-y-4">
                         <div>
