@@ -74,10 +74,10 @@ Check it's working: open `http://localhost:4000/api/health` in a browser — sho
 cd frontend
 cp .env.example .env       # defaults to http://localhost:4000/api, adjust if needed
 npm install
-npm run dev                 # starts on http://localhost:5173
+npm run dev                 # starts on http://localhost:5174
 ```
 
-Open `http://localhost:5173` — the dashboard now loads tanks, stock levels, purchase orders, and products live from MySQL via the API, and the search box / category / status chips re-query the backend as you use them.
+Open `http://localhost:5174` — the dashboard now loads tanks, stock levels, purchase orders, and products live from MySQL via the API, and the search box / category / status chips re-query the backend as you use them.
 
 ## Notes / next steps
 - Auth isn't wired up yet — add a login route + JWT or session middleware in `backend/server.js` before deploying this anywhere real.

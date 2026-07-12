@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
-
+import authRouter from "./routes/auth.js";
 import productsRouter from "./routes/products.js";
 import tanksRouter from "./routes/tanks.js";
 import purchaseOrdersRouter from "./routes/purchaseOrders.js";
@@ -14,6 +14,7 @@ app.use(express.json());
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
+app.use("/api/auth", authRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/tanks", tanksRouter);
 app.use("/api/purchase-orders", purchaseOrdersRouter);

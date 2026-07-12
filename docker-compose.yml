@@ -7,10 +7,11 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
       MYSQL_DATABASE: asf_inventory
     ports:
-      - "3307:3307"          # so DBeaver on your host machine can still connect
+      - "3307:3306"          # host:container — container always listens on 3306 internally
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro   # auto-runs on first boot only
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql:ro   # auto-runs on first boot only
+      - ./sql/users.sql:/docker-entrypoint-initdb.d/2-users.sql:ro     # runs after schema.sql (alphabetical order)
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
       interval: 5s
@@ -26,10 +27,11 @@ services:
     environment:
       PORT: 4000
       DB_HOST: mysql            # container-to-container, uses the service name not "localhost"
-      DB_PORT: 3306
+      DB_PORT: 3306             # internal port — NOT the 3307 host mapping above
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
       DB_NAME: asf_inventory
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       CORS_ORIGIN: http://localhost:5174
     volumes:
       - ./backend:/app         # live-reload: edits on your machine reflect in the container
@@ -37,6 +39,20 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: asf_frontend
+    restart: unless-stopped
+    ports:
+      - "5174:5174"
+    environment:
+      VITE_API_URL: http://localhost:4000/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
 
 volumes:
   mysql_data:

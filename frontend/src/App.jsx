@@ -7,16 +7,22 @@ import Analytics from "./pages/analytics";
 import Orders from "./pages/orders";
 import Profile from "./pages/profile";
 import Settings from "./pages/settings";
+import Login from "./pages/login";
+import { useAuth } from "./context/AuthContext";
 import { Menu } from "lucide-react";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
-async function getJSON(path) {
-  const res = await fetch(`${API_URL}${path}`);
+async function getJSON(path, token) {
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
   if (!res.ok) throw new Error(`Request failed: ${path}`);
   return res.json();
 }
 
 export default function App() {
+  const { user, token, checking } = useAuth();
+
   const [activeTab, setActiveTab] = useState("Dashboard");
 
   // Global State
@@ -35,8 +41,9 @@ export default function App() {
   const [alertOpen, setAlertOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Initial load
+  // Load station data only once we know who's logged in
   useEffect(() => {
+    if (!user) return; // not logged in yet — nothing to load
     let cancelled = false;
 
     async function load() {
@@ -44,10 +51,10 @@ export default function App() {
         setLoading(true);
         // Using Promise.allSettled logic to prevent API crash while frontend builds
         const [tanksData, barsData, poData, productsData] = await Promise.all([
-          getJSON("/tanks").catch(() => []),
-          getJSON("/products/stock-by-category").catch(() => []),
-          getJSON("/purchase-orders").catch(() => []),
-          getJSON("/products").catch(() => []),
+          getJSON("/tanks", token).catch(() => []),
+          getJSON("/products/stock-by-category", token).catch(() => []),
+          getJSON("/purchase-orders", token).catch(() => []),
+          getJSON("/products", token).catch(() => []),
         ]);
         if (cancelled) return;
 
@@ -73,7 +80,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user, token]);
 
   const criticalCount = useMemo(
       () => products.filter((p) => p.status === "Critical").length,
@@ -84,6 +91,21 @@ export default function App() {
       () => products.filter((p) => p.status === "Critical").map((p) => p.name).slice(0, 3),
       [products]
   );
+
+  // Still verifying a stored token on first load — show a blank loader
+  // rather than flashing the login page before we know the real answer.
+  if (checking) {
+    return (
+        <div className="min-h-screen w-full bg-white flex items-center justify-center text-slate-500 text-sm font-medium">
+          Loading…
+        </div>
+    );
+  }
+
+  // No valid session — show the login page instead of the dashboard
+  if (!user) {
+    return <Login />;
+  }
 
   if (loading) {
     return (
