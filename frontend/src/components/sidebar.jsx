@@ -80,7 +80,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
                         MR
                     </div>
                     <div className="min-w-0">
-                        <div className="text-xs font-semibold truncate">Marcus Reilly</div>
+                        <div className="text-xs font-semibold truncate">ASF Supergas</div>
                         <div className="text-[10px] text-white/60 truncate">Station Manager</div>
                     </div>
                     <LogOut size={14} className="ml-auto text-white/50 shrink-0 cursor-pointer hover:text-white" />

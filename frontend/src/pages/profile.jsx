@@ -20,7 +20,7 @@ export default function Profile() {
                             <Camera size={24} className="text-white" />
                         </div>
                     </div>
-                    <h2 className="text-lg font-bold text-blue-950">Marcus Reilly</h2>
+                    <h2 className="text-lg font-bold text-blue-950">ASF Supergas</h2>
                     <div className="text-sm text-slate-500 font-medium mb-4">Station Manager</div>
 
                     <div className="w-full pt-4 border-t border-slate-100 flex flex-col gap-3 text-left">
@@ -49,11 +49,11 @@ export default function Profile() {
                         <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-semibold text-slate-500 mb-1.5">First Name</label>
-                                <input type="text" defaultValue="Marcus" className="w-full border border-slate-200 bg-slate-50 p-2.5 rounded-lg text-sm outline-none focus:border-blue-500 focus:bg-white" />
+                                <input type="text" defaultValue="ASF" className="w-full border border-slate-200 bg-slate-50 p-2.5 rounded-lg text-sm outline-none focus:border-blue-500 focus:bg-white" />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-slate-500 mb-1.5">Last Name</label>
-                                <input type="text" defaultValue="Reilly" className="w-full border border-slate-200 bg-slate-50 p-2.5 rounded-lg text-sm outline-none focus:border-blue-500 focus:bg-white" />
+                                <input type="text" defaultValue="SuperGas" className="w-full border border-slate-200 bg-slate-50 p-2.5 rounded-lg text-sm outline-none focus:border-blue-500 focus:bg-white" />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-slate-500 mb-1.5">Email Address</label>

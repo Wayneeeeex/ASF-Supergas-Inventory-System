@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Search, Bell, Package, TrendingUp, AlertTriangle, Truck, Plus, X } from "lucide-react";
+import Pagination from "../components/pagination";
 
 // Helper functions & constants
 const CATEGORY_FILTERS = [
@@ -11,6 +12,7 @@ const CATEGORY_FILTERS = [
     { key: "Convenience", label: "Convenience" },
 ];
 const STATUS_FILTERS = ["In Stock", "Low", "Critical"];
+const PAGE_SIZE = 8;
 
 const tankRing = (pct, status) => {
     const color = status === "critical" ? "#dc2626" : status === "low" ? "#facc15" : "#2563eb";
@@ -40,41 +42,66 @@ const qtyStyle = {
     "Out of Stock": "text-red-600",
 };
 
+const statusDotColor = {
+    "In Stock": "bg-emerald-500",
+    Low: "bg-yellow-500",
+    Critical: "bg-red-600",
+    "Out of Stock": "bg-slate-400",
+};
+
 export default function Inventory({
                                       tanks, products, categoryBars, purchaseOrders, alertOpen, setAlertOpen,
                                       criticalCount, criticalNames, query, setQuery, activeCat, setActiveCat,
                                       activeStatus, setActiveStatus
                                   }) {
+    const [page, setPage] = useState(1);
+
+    // Any time the visible product set changes shape (search/filter), snap back to page 1
+    // so you can't get stranded on a page that no longer has any rows.
+    useEffect(() => {
+        setPage(1);
+    }, [query, activeCat, activeStatus]);
+
+    const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE));
+    const safePage = Math.min(page, totalPages);
+
+    const pagedProducts = useMemo(() => {
+        const start = (safePage - 1) * PAGE_SIZE;
+        return products.slice(start, start + PAGE_SIZE);
+    }, [products, safePage]);
+
     return (
         <div className="animate-in fade-in duration-300">
             {/* TOPBAR */}
-            <div className="flex items-center justify-between gap-5 mb-6 flex-wrap">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="font-bold text-2xl tracking-wide text-blue-950">STATION INVENTORY</h1>
+                    <h1 className="font-bold text-xl sm:text-2xl tracking-wide text-blue-950">STATION INVENTORY</h1>
                     <div className="text-xs text-slate-500 font-medium mt-1">Bunawan Depot · Davao Region</div>
                 </div>
-                <div className="relative flex-1 max-w-sm min-w-[200px]">
-                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search SKU or name..."
-                        className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 bg-white shadow-sm text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
-                    />
+                <div className="flex items-center gap-3">
+                    <div className="relative flex-1 sm:w-64 md:w-72 min-w-0">
+                        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="Search SKU or name..."
+                            className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 bg-white shadow-sm text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                        />
+                    </div>
+                    <button className="w-10 h-10 rounded-lg border border-slate-200 bg-white shadow-sm flex items-center justify-center relative shrink-0 hover:bg-slate-50">
+                        <Bell size={18} className="text-slate-600" />
+                        {criticalCount > 0 && (
+                            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-600 ring-2 ring-white" />
+                        )}
+                    </button>
                 </div>
-                <button className="w-10 h-10 rounded-lg border border-slate-200 bg-white shadow-sm flex items-center justify-center relative shrink-0 hover:bg-slate-50">
-                    <Bell size={18} className="text-slate-600" />
-                    {criticalCount > 0 && (
-                        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-600 ring-2 ring-white" />
-                    )}
-                </button>
             </div>
 
             {/* ALERT BANNER */}
             {alertOpen && criticalCount > 0 && (
-                <div className="flex items-center gap-3 bg-red-600 text-white rounded-xl px-4 py-3.5 mb-6 text-sm font-medium shadow-sm">
-                    <AlertTriangle size={18} className="shrink-0" />
+                <div className="flex items-start sm:items-center gap-3 bg-red-600 text-white rounded-xl px-4 py-3.5 mb-6 text-sm font-medium shadow-sm">
+                    <AlertTriangle size={18} className="shrink-0 mt-0.5 sm:mt-0" />
                     <div>
                         <b className="font-bold">{criticalCount} critical alert{criticalCount !== 1 ? "s" : ""}:</b>{" "}
                         {criticalNames.join(", ")} need immediate reorder
@@ -94,24 +121,24 @@ export default function Inventory({
             </div>
 
             {/* TANK GAUGES */}
-            <div className="relative overflow-hidden rounded-2xl bg-blue-950 px-7 py-6 mb-6 shadow-md">
+            <div className="relative overflow-hidden rounded-2xl bg-blue-950 px-4 sm:px-7 py-6 mb-6 shadow-md">
                 <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(circle at 90% -10%, rgba(250,204,21,0.18), transparent 45%)" }} />
                 <div className="relative flex items-center justify-between mb-5">
                     <h2 className="text-white font-semibold text-sm tracking-wider">UNDERGROUND TANK LEVELS</h2>
-                    <span className="text-[11px] text-white/50 font-medium">Live from database</span>
+                    <span className="hidden sm:inline text-[11px] text-white/50 font-medium">Live from database</span>
                 </div>
-                <div className="relative grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="relative grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                     {tanks.map((t) => (
-                        <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl px-4 py-4 flex flex-col items-center text-center">
-                            <div className="w-28 h-28 rounded-full flex items-center justify-center mb-2.5" style={tankRing(t.pct, t.status)}>
-                                <div className="w-[88px] h-[88px] rounded-full bg-blue-950 ring-1 ring-white/10 flex flex-col items-center justify-center shadow-inner">
-                                    <div className="text-white font-bold text-xl leading-none">{t.pct}%</div>
+                        <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl px-3 sm:px-4 py-4 flex flex-col items-center text-center">
+                            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center mb-2.5" style={tankRing(t.pct, t.status)}>
+                                <div className="w-[76px] h-[76px] sm:w-[88px] sm:h-[88px] rounded-full bg-blue-950 ring-1 ring-white/10 flex flex-col items-center justify-center shadow-inner">
+                                    <div className="text-white font-bold text-lg sm:text-xl leading-none">{t.pct}%</div>
                                     <div className="text-white/40 text-[8px] tracking-widest font-semibold mt-1">FULL</div>
                                 </div>
                             </div>
-                            <div className="text-white font-semibold text-sm">{t.name}</div>
-                            <div className="text-white/55 text-[11px] mt-0.5 font-mono">{t.vol} / {t.cap}</div>
-                            <span className={`mt-2 text-[9px] font-bold tracking-wide px-2.5 py-1 rounded-full ${t.status === "critical" ? "bg-red-500/25 text-red-300" : t.status === "low" ? "bg-yellow-400/20 text-yellow-300" : "bg-blue-500/30 text-blue-200"}`}>
+                            <div className="text-white font-semibold text-xs sm:text-sm">{t.name}</div>
+                            <div className="text-white/55 text-[10px] sm:text-[11px] mt-0.5 font-mono">{t.vol} / {t.cap}</div>
+                            <span className={`mt-2 text-[8px] sm:text-[9px] font-bold tracking-wide px-2 sm:px-2.5 py-1 rounded-full text-center ${t.status === "critical" ? "bg-red-500/25 text-red-300" : t.status === "low" ? "bg-yellow-400/20 text-yellow-300" : "bg-blue-500/30 text-blue-200"}`}>
                 {t.status === "critical" ? "CRITICAL — ORDER NOW" : t.status === "low" ? "LOW — REORDER SOON" : "HEALTHY"}
               </span>
                         </div>
@@ -121,18 +148,18 @@ export default function Inventory({
 
             {/* CHART + PURCHASE ORDERS */}
             <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-5 mb-6">
-                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl px-5 py-5">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl px-4 sm:px-5 py-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold text-sm tracking-wide text-blue-950">STOCK LEVELS BY CATEGORY</h2>
                         <span className="text-[11px] text-slate-400 font-medium">Units on hand</span>
                     </div>
-                    <div className="flex items-end gap-6 h-44 border-b border-slate-200 pb-2">
+                    <div className="flex items-end gap-2 sm:gap-6 h-44 border-b border-slate-200 pb-2">
                         {categoryBars.map((b) => (
-                            <div key={b.label} className="flex-1 flex flex-col items-center gap-2">
+                            <div key={b.label} className="flex-1 flex flex-col items-center gap-2 min-w-0">
                                 <div className="w-full max-w-[46px] h-40 flex items-end">
                                     <div className={`w-full rounded-t-md ${barTone[b.tone]}`} style={{ height: `${b.pct}%` }} />
                                 </div>
-                                <div className="text-[11px] text-slate-500 font-semibold text-center">{b.label}</div>
+                                <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold text-center leading-tight">{b.label}</div>
                             </div>
                         ))}
                     </div>
@@ -143,7 +170,7 @@ export default function Inventory({
                     </div>
                 </div>
 
-                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl px-5 py-5">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl px-4 sm:px-5 py-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold text-sm tracking-wide text-blue-950">PURCHASE ORDERS</h2>
                         <button className="flex items-center gap-1 text-xs font-bold text-yellow-600 hover:text-yellow-700">
@@ -168,8 +195,8 @@ export default function Inventory({
                 </div>
             </div>
 
-            {/* PRODUCT TABLE */}
-            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl px-5 py-5">
+            {/* PRODUCT INVENTORY */}
+            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl px-4 sm:px-5 py-5">
                 <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
                     <h2 className="font-semibold text-sm tracking-wide text-blue-950">
                         PRODUCT INVENTORY <span className="text-slate-400 font-medium text-xs">({products.length} items)</span>
@@ -186,7 +213,8 @@ export default function Inventory({
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* ===== DESKTOP: TABLE (md and up) ===== */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full border-collapse min-w-[720px]">
                         <thead>
                         <tr>
@@ -198,7 +226,7 @@ export default function Inventory({
                         </tr>
                         </thead>
                         <tbody>
-                        {products.map((p) => (
+                        {pagedProducts.map((p) => (
                             <tr key={p.sku} className="hover:bg-slate-50 transition-colors">
                                 <td className="py-3 px-2.5 border-b border-slate-100">
                                     <div className="font-semibold text-slate-800 text-sm">{p.name}</div>
@@ -215,7 +243,7 @@ export default function Inventory({
                                 <td className="py-3 px-2.5 border-b border-slate-100 text-slate-500 text-sm">{p.location}</td>
                                 <td className="py-3 px-2.5 border-b border-slate-100">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${rowStatusStyle[p.status]}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${p.status === "In Stock" ? "bg-emerald-500" : p.status === "Low" ? "bg-yellow-500" : p.status === "Critical" ? "bg-red-600" : "bg-slate-400"}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusDotColor[p.status]}`} />
                         {p.status}
                     </span>
                                 </td>
@@ -224,9 +252,72 @@ export default function Inventory({
                                 </td>
                             </tr>
                         ))}
+                        {products.length === 0 && (
+                            <tr>
+                                <td colSpan={8} className="py-10 text-center text-slate-400 text-sm">
+                                    No items match these filters.
+                                </td>
+                            </tr>
+                        )}
                         </tbody>
                     </table>
                 </div>
+
+                {/* ===== MOBILE: STACKED CARDS (below md) ===== */}
+                <div className="md:hidden -mx-4 sm:-mx-5 divide-y divide-slate-100 border-t border-slate-100">
+                    {pagedProducts.map((p) => (
+                        <div key={p.sku} className="px-4 sm:px-5 py-4 active:bg-slate-50 transition-colors">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                                <div className="min-w-0">
+                                    <div className="font-semibold text-slate-800 text-sm">{p.name}</div>
+                                    <div className="text-[11px] text-slate-400 font-mono mt-0.5">{p.sku}</div>
+                                </div>
+                                <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold shrink-0 ${rowStatusStyle[p.status]}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${statusDotColor[p.status]}`} />
+                                    {p.status}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="text-[11px] font-semibold bg-slate-100 text-slate-500 px-2.5 py-1 rounded-md">{p.category_label}</span>
+                                <span className="text-[11px] text-slate-400">{p.location}</span>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+                                <div>
+                                    <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Qty</div>
+                                    <div className={`font-mono font-bold text-sm ${qtyStyle[p.status]}`}>
+                                        {p.qty} <span className="text-slate-400 text-[10px] font-sans font-normal">{p.unit}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Min</div>
+                                    <div className="text-slate-600 text-sm font-medium">{p.min_qty}</div>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Unit Cost</div>
+                                    <div className="font-mono text-sm text-slate-800">₱{Number(p.unit_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                </div>
+                            </div>
+
+                            <div className="text-[10px] text-slate-400 mt-2">
+                                Updated {new Date(p.updated_at).toISOString().slice(0, 10)}
+                            </div>
+                        </div>
+                    ))}
+                    {products.length === 0 && (
+                        <div className="py-10 text-center text-slate-400 text-sm px-4">
+                            No items match these filters.
+                        </div>
+                    )}
+                </div>
+
+                <Pagination
+                    currentPage={safePage}
+                    totalItems={products.length}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={setPage}
+                />
             </div>
         </div>
     );
