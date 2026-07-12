@@ -230,7 +230,7 @@ export default function App() {
             )}
 
             {/* VIEW ROUTING */}
-            {safeActiveTab === "Dashboard" && <Dashboard tanks={tanks} transactions={transactions} setActiveTab={setActiveTab} />}
+            {safeActiveTab === "Dashboard" && <Dashboard tanks={tanks} transactions={transactions} setActiveTab={setActiveTab} selectedStationId={selectedStationId} />}
             {safeActiveTab === "Inventory" && (
                 <Inventory
                     stations={stations}

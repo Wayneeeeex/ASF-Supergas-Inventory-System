@@ -1,12 +1,18 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { TrendingUp, Fuel, Users, Clock, Activity, ArrowRight, Truck } from "lucide-react";
 
-export default function Dashboard({ tanks, transactions, setActiveTab }) {
+export default function Dashboard({ tanks, transactions, setActiveTab, selectedStationId }) {
+    // Filter transactions by selected station
+    const stationTransactions = useMemo(() => {
+        if (selectedStationId === null) return transactions;
+        return transactions.filter((t) => Number(t.station_id) === Number(selectedStationId));
+    }, [transactions, selectedStationId]);
+
     // Filter today's sales
     const todayStr = new Date().toISOString().slice(0, 10);
-    const todaySales = transactions.filter(
-        (t) => t.category === "sales" && t.date === todayStr
-    );
+    const todaySales = useMemo(() => 
+        stationTransactions.filter((t) => t.category === "sales" && t.date === todayStr),
+        [stationTransactions, todayStr]);
 
     const todayRevenue = todaySales.reduce((sum, t) => sum + Number(t.amount), 0);
     const todayLiters = todaySales.reduce((sum, t) => sum + Number(t.liters), 0);
@@ -36,7 +42,7 @@ export default function Dashboard({ tanks, transactions, setActiveTab }) {
         },
     ];
 
-    const recentTxns = transactions.slice(0, 4);
+    const recentTxns = useMemo(() => stationTransactions.slice(0, 4), [stationTransactions]);
 
     return (
         <div className="animate-in fade-in duration-300">
