@@ -263,7 +263,7 @@ export default function App() {
                     stations={stations}
                 />
             )}
-            {safeActiveTab === "Analytics" && <Analytics transactions={transactions} tanks={tanks} />}
+            {safeActiveTab === "Analytics" && <Analytics transactions={transactions} tanks={tanks} selectedStationId={selectedStationId} />}
             {safeActiveTab === "Orders" && <Orders purchaseOrders={purchaseOrders} refreshData={refreshData} selectedStationId={selectedStationId} />}
             {safeActiveTab === "Profile" && <Profile />}
             {safeActiveTab === "Settings" && <Settings />}

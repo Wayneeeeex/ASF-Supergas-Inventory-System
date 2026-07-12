@@ -36,12 +36,17 @@ function last7Days() {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function Analytics({ transactions, tanks }) {
+export default function Analytics({ transactions, tanks, selectedStationId }) {
     const window7 = useMemo(() => last7Days(), []);
 
+    const stationTransactions = useMemo(() => {
+        if (selectedStationId === null) return transactions;
+        return transactions.filter((t) => Number(t.station_id) === Number(selectedStationId));
+    }, [transactions, selectedStationId]);
+
     const salesTxns = useMemo(
-        () => transactions.filter((t) => t.category === "sales"),
-        [transactions]
+        () => stationTransactions.filter((t) => t.category === "sales"),
+        [stationTransactions]
     );
 
     // ── KPI metrics ───────────────────────────────────────────────────────────

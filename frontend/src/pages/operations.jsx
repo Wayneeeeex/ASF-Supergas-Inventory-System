@@ -93,15 +93,21 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
         ? (parseFloat(salesForm.liters_sold) * (tankPrices[salesForm.tank_id] || 0)).toFixed(2)
         : "0.00";
 
+    // Filter transactions by selected station
+    const stationTransactions = useMemo(() => {
+        if (selectedStationId === null) return transactions;
+        return transactions.filter((t) => Number(t.station_id) === Number(selectedStationId));
+    }, [transactions, selectedStationId]);
+
     // Fuel sales log (category = "sales", type must be a known fuel tank)
     const fuelSalesLog = useMemo(() =>
-        transactions.filter((t) => t.category === "sales" && fuelNames.has(t.type)),
-        [transactions, fuelNames]);
+        stationTransactions.filter((t) => t.category === "sales" && fuelNames.has(t.type)),
+        [stationTransactions, fuelNames]);
 
     // Depot delivery log (category = "delivery")
     const depotLog = useMemo(() =>
-        transactions.filter((t) => t.category === "delivery"),
-        [transactions]);
+        stationTransactions.filter((t) => t.category === "delivery"),
+        [stationTransactions]);
 
     // Filtered & paged — sales
     const filteredSales = useMemo(() => {
