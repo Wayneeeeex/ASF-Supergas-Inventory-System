@@ -7,6 +7,7 @@ import Analytics from "./pages/analytics";
 import Orders from "./pages/orders";
 import Profile from "./pages/profile";
 import Settings from "./pages/settings";
+import { Menu } from "lucide-react";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 async function getJSON(path) {
@@ -32,10 +33,12 @@ export default function App() {
   const [activeStatus, setActiveStatus] = useState(null);
   const [query, setQuery] = useState("");
   const [alertOpen, setAlertOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Initial load
   useEffect(() => {
     let cancelled = false;
+
     async function load() {
       try {
         setLoading(true);
@@ -50,10 +53,10 @@ export default function App() {
 
         // Fallback dummy data if API fails so the UI still renders
         setTanks(tanksData.length ? tanksData : [
-          { id: 1, name: "Unleaded 91", pct: 68, vol: "12,240", cap: "18,000 L", status: "healthy" },
-          { id: 2, name: "Unleaded 95", pct: 22, vol: "3,960", cap: "18,000 L", status: "low" },
-          { id: 3, name: "Diesel", pct: 81, vol: "16,200", cap: "20,000 L", status: "healthy" },
-          { id: 4, name: "LPG Bulk", pct: 9, vol: "900", cap: "10,000 L", status: "critical" }
+          {id: 1, name: "Unleaded 91", pct: 68, vol: "12,240", cap: "18,000 L", status: "healthy"},
+          {id: 2, name: "Unleaded 95", pct: 22, vol: "3,960", cap: "18,000 L", status: "low"},
+          {id: 3, name: "Diesel", pct: 81, vol: "16,200", cap: "20,000 L", status: "healthy"},
+          {id: 4, name: "LPG Bulk", pct: 9, vol: "900", cap: "10,000 L", status: "critical"}
         ]);
         setCategoryBars(barsData.length ? barsData : []);
         setPurchaseOrders(poData.length ? poData : []);
@@ -65,8 +68,11 @@ export default function App() {
         if (!cancelled) setLoading(false);
       }
     }
+
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const criticalCount = useMemo(
@@ -81,26 +87,45 @@ export default function App() {
 
   if (loading) {
     return (
-        <div className="min-h-screen w-full bg-white flex items-center justify-center text-slate-500 text-sm font-medium">
+        <div
+            className="min-h-screen w-full bg-white flex items-center justify-center text-slate-500 text-sm font-medium">
           Loading station data…
         </div>
     );
   }
 
   return (
-      <div className="min-h-screen w-full bg-white text-slate-800 font-sans flex">
-        {/* SIDEBAR IMPORT */}
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div
+          className="min-h-screen w-full bg-slate-50 text-slate-800 font-sans flex flex-col md:flex-row relative overflow-hidden">
+
+        {/* MOBILE TOP BAR (Only visible on small screens) */}
+        <div className="md:hidden flex items-center justify-between bg-blue-950 p-4 text-white shrink-0 z-20 shadow-md">
+          <div>
+            <h2 className="text-lg font-black tracking-wider">ASF SUPER</h2>
+            <p className="text-blue-300 text-[10px] font-bold tracking-widest uppercase">Gas Station</p>
+          </div>
+          <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+          >
+            <Menu size={20}/>
+          </button>
+        </div>
+
+        {/* SIDEBAR (Pass the new props for mobile control) */}
+        <Sidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            isOpen={isMobileMenuOpen}
+            setIsOpen={setIsMobileMenuOpen}
+        />
 
         {/* MAIN CONTENT AREA */}
-        <main className="flex-1 min-w-0 bg-slate-50 h-screen overflow-y-auto">
-          <div className="max-w-[1600px] mx-auto px-6 py-8 md:px-10 lg:px-12">
+        <main className="flex-1 min-w-0 bg-slate-50 h-[calc(100vh-72px)] md:h-screen overflow-y-auto">
+          <div className="max-w-[1600px] mx-auto px-4 md:px-10 lg:px-12 py-6 md:py-8">
 
             {/* VIEW ROUTING */}
-            {activeTab === "Dashboard" && (
-                <Dashboard tanks={tanks} />
-
-            )}
+            {activeTab === "Dashboard" && <Dashboard tanks={tanks}/>}
             {activeTab === "Inventory" && (
                 <Inventory
                     tanks={tanks}
@@ -119,30 +144,18 @@ export default function App() {
                     setActiveStatus={setActiveStatus}
                 />
             )}
+            {activeTab === "Operations" && <Operations dummyTanks={tanks}/>}
+            {activeTab === "Analytics" && <Analytics/>}
+            {activeTab === "Orders" && <Orders purchaseOrders={purchaseOrders}/>}
+            {activeTab === "Profile" && <Profile/>}
+            {activeTab === "Settings" && <Settings/>}
 
-            {activeTab === "Operations" && (
-                <Operations dummyTanks={tanks} />
-            )}
-            {activeTab === "Analytics" && (
-                <Analytics />
-            )}
-            {activeTab === "Orders" && (
-                <Orders purchaseOrders={purchaseOrders} />
-            )}
-            {activeTab === "Profile" && (
-                <Profile />
-            )}
-            {activeTab === "Settings" && (
-                <Settings />
-            )}
-
-
-            {activeTab !== "Orders" && activeTab!== "Analytics" && activeTab !== "Dashboard" && activeTab !== "Inventory" && activeTab !== "Operations" && (
+            {/* Fallback */}
+            {activeTab !== "Dashboard" && activeTab !== "Inventory" && activeTab !== "Operations" && activeTab !== "Analytics" && activeTab !== "Orders" && activeTab !== "Profile" && activeTab !== "Settings" && (
                 <div className="flex items-center justify-center h-64 text-slate-400 font-medium">
                   {activeTab} module is under construction.
                 </div>
             )}
-
           </div>
         </main>
       </div>
