@@ -43,24 +43,19 @@ export default function App() {
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const DEFAULT_TRANSACTIONS = useMemo(() => [
-    { id: "TXN-8921", time: "10:24 AM", type: "Unleaded 95", amount: 1500.00, liters: 23.01, date: new Date().toISOString().slice(0,10), category: "sales" },
-    { id: "TXN-8920", time: "10:18 AM", type: "Diesel", amount: 2100.00, liters: 36.20, date: new Date().toISOString().slice(0,10), category: "sales" },
-    { id: "TXN-8919", time: "10:05 AM", type: "Unleaded 91", amount: 500.00, liters: 8.26, date: new Date().toISOString().slice(0,10), category: "sales" },
-    { id: "TXN-8918", time: "09:42 AM", type: "LPG Bulk", amount: 950.00, liters: 21.11, date: new Date().toISOString().slice(0,10), category: "sales" },
-    { id: "DEL-1001", time: "09:00 AM", type: "Diesel", amount: 98000.00, liters: 1690.00, date: new Date().toISOString().slice(0,10), category: "delivery" }
-  ], []);
+  const [transactions, setTransactions] = useState([]);
 
-  const [transactions, setTransactions] = useState(() => {
-    const saved = localStorage.getItem("asf_transactions");
-    return saved ? JSON.parse(saved) : DEFAULT_TRANSACTIONS;
-  });
-
-  useEffect(() => {
-    localStorage.setItem("asf_transactions", JSON.stringify(transactions));
-  }, [transactions]);
-
-  const addTransaction = (newTxn) => {
+  const addTransaction = async (newTxn) => {
+    const res = await fetch(`${API_URL}/transactions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(newTxn)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to save transaction");
     setTransactions((prev) => [newTxn, ...prev]);
   };
 
@@ -117,11 +112,12 @@ export default function App() {
       try {
         setLoading(true);
         const qs = selectedStationId ? `?station_id=${selectedStationId}` : "";
-        const [tanksData, barsData, poData, productsData] = await Promise.all([
+        const [tanksData, barsData, poData, productsData, transactionsData] = await Promise.all([
           getJSON(`/tanks${qs}`, token).catch(() => []),
           getJSON(`/products/stock-by-category${qs}`, token).catch(() => []),
           getJSON(`/purchase-orders${qs}`, token).catch(() => []),
           getJSON(`/products${qs}`, token).catch(() => []),
+          getJSON(`/transactions${qs}`, token).catch(() => []),
         ]);
         if (cancelled) return;
 
@@ -135,6 +131,7 @@ export default function App() {
         setCategoryBars(barsData.length ? barsData : []);
         setPurchaseOrders(poData.length ? poData : []);
         setProducts(productsData.length ? productsData : []);
+        setTransactions(transactionsData.length ? transactionsData : []);
         setError(null);
       } catch (err) {
         if (!cancelled) setError(err.message);

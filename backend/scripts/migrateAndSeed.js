@@ -147,12 +147,24 @@ async function run() {
       name VARCHAR(100) NOT NULL,
       email VARCHAR(100) NOT NULL UNIQUE,
       password_hash VARCHAR(255) NOT NULL,
+      phone VARCHAR(20) NULL DEFAULT '+63 917 555 0192',
       role ENUM('admin', 'manager', 'staff', 'purchase_order') NOT NULL DEFAULT 'staff',
       station_id INT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT fk_users_station FOREIGN KEY (station_id) REFERENCES stations(id)
     )
   `);
+
+  // Ensure phone column exists in case users table was already created without it
+  try {
+    await pool.query(`
+      ALTER TABLE users 
+      ADD COLUMN phone VARCHAR(20) NULL DEFAULT '+63 917 555 0192'
+    `);
+    console.log("- Added missing phone column to users table");
+  } catch (err) {
+    // Ignore if column already exists (ER_DUP_FIELDNAME)
+  }
 
   // 6. Seed default users
   const credentials = [
@@ -171,6 +183,40 @@ async function run() {
       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), name = VALUES(name), station_id = VALUES(station_id), role = VALUES(role)
     `, [cred.name, cred.email, hash, cred.role, cred.station_id]);
     console.log(`- Seeded user: ${cred.name} (${cred.email})`);
+  }
+
+  // 7. Create transactions table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS transactions (
+      id VARCHAR(50) PRIMARY KEY,
+      station_id INT NOT NULL,
+      time VARCHAR(20) NOT NULL,
+      type VARCHAR(60) NOT NULL,
+      amount DECIMAL(12,2) NOT NULL,
+      liters DECIMAL(12,2) NOT NULL,
+      price_per_liter DECIMAL(10,2) NOT NULL,
+      date DATE NOT NULL,
+      category ENUM('sales', 'delivery') NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_transactions_station FOREIGN KEY (station_id) REFERENCES stations(id)
+    )
+  `);
+
+  const [txns] = await pool.query("SELECT COUNT(*) as count FROM transactions");
+  if (txns[0].count === 0) {
+    const today = new Date().toISOString().slice(0, 10);
+    await pool.query(`
+      INSERT INTO transactions (id, station_id, time, type, amount, liters, price_per_liter, date, category) VALUES
+      ('TXN-8921', 1, '10:24 AM', 'Unleaded 95', 1500.00,  23.01,  65.20, ?, 'sales'),
+      ('TXN-8920', 1, '10:18 AM', 'Diesel',      2100.00,  36.20,  58.00, ?, 'sales'),
+      ('TXN-8919', 1, '10:05 AM', 'Unleaded 91', 500.00,   8.26,   60.50, ?, 'sales'),
+      ('TXN-8918', 1, '09:42 AM', 'LPG Bulk',    950.00,   21.11,  45.00, ?, 'sales'),
+      ('DEL-1001', 1, '09:00 AM', 'Diesel',      98000.00, 1690.00, 58.00, ?, 'delivery'),
+      ('TXN-9921', 2, '11:15 AM', 'Unleaded 95', 2000.00,  30.67,  65.20, ?, 'sales'),
+      ('TXN-9920', 2, '10:45 AM', 'Diesel',      1500.00,  25.86,  58.00, ?, 'sales'),
+      ('DEL-2001', 2, '08:30 AM', 'Diesel',      58000.00, 1000.00, 58.00, ?, 'delivery')
+    `, [today, today, today, today, today, today, today, today]);
+    console.log("- Seeded default transactions");
   }
 
   console.log("Database initialized successfully!");

@@ -164,7 +164,7 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
             if (!res.ok) throw new Error(data.error || "Failed to update tank volume");
 
             const revenue = liters * tank.price_per_liter;
-            addTransaction({
+            await addTransaction({
                 id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
                 station_id: tank.station_id,
                 time: new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
@@ -231,7 +231,7 @@ export default function Operations({ dummyTanks, transactions, addTransaction, r
             if (!res.ok) throw new Error(data.error || "Failed to update tank volume");
 
             const deliveryCost = liters * cost;
-            addTransaction({
+            await addTransaction({
                 id: `DEL-${Math.floor(1000 + Math.random() * 9000)}`,
                 station_id: tank.station_id,
                 time: new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),

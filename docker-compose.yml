@@ -24,15 +24,11 @@ services:
     restart: unless-stopped
     ports:
       - "4000:4000"
+    env_file:
+      - ./backend/.env
     environment:
       PORT: 4000
-      DB_HOST: mysql            # container-to-container, uses the service name not "localhost"
-      DB_PORT: 3306             # internal port — NOT the 3307 host mapping above
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
-      DB_NAME: asf_inventory
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
-      CORS_ORIGIN: http://localhost:5174
     volumes:
       - ./backend:/app         # live-reload: edits on your machine reflect in the container
       - /app/node_modules      # but don't let the mount shadow the installed deps
