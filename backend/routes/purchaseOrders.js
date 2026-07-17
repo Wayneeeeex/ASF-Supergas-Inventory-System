@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
     }));
     res.json(result);
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: "Failed to fetch purchase orders" });
   }
 });
@@ -31,7 +31,7 @@ router.post("/", async (req, res) => {
     );
     res.status(201).json({ id: result.insertId });
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: "Failed to create purchase order" });
   }
 });
