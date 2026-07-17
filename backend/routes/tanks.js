@@ -31,7 +31,17 @@ router.get("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { volume_liters } = req.body;
-    await pool.query("UPDATE tanks SET volume_liters = ? WHERE id = ?", [volume_liters, req.params.id]);
+    const id = parseInt(req.params.id, 10);
+
+    if (isNaN(id) || id <= 0) {
+      return res.status(400).json({ error: "Invalid tank ID" });
+    }
+
+    if (typeof volume_liters !== "number" || isNaN(volume_liters) || volume_liters < 0) {
+      return res.status(400).json({ error: "Invalid volume_liters" });
+    }
+
+    await pool.query("UPDATE tanks SET volume_liters = ? WHERE id = ?", [volume_liters, id]);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
