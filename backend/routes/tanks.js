@@ -22,7 +22,7 @@ router.get("/", async (req, res) => {
     });
     res.json(result);
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: "Failed to fetch tanks" });
   }
 });
@@ -34,7 +34,7 @@ router.put("/:id", async (req, res) => {
     await pool.query("UPDATE tanks SET volume_liters = ? WHERE id = ?", [volume_liters, req.params.id]);
     res.json({ ok: true });
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: "Failed to update tank" });
   }
 });

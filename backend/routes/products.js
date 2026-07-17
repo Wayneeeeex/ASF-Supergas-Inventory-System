@@ -30,7 +30,7 @@ router.get("/", async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: "Failed to fetch products" });
   }
 });
@@ -63,7 +63,7 @@ router.get("/stock-by-category", async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: "Failed to aggregate stock levels" });
   }
 });
@@ -79,7 +79,7 @@ router.post("/", async (req, res) => {
     );
     res.status(201).json({ id: result.insertId });
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: "Failed to create product" });
   }
 });
@@ -95,7 +95,7 @@ router.put("/:id", async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: "Failed to update product" });
   }
 });
@@ -106,7 +106,7 @@ router.delete("/:id", async (req, res) => {
     await pool.query("DELETE FROM products WHERE id = ?", [req.params.id]);
     res.json({ ok: true });
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: "Failed to delete product" });
   }
 });
